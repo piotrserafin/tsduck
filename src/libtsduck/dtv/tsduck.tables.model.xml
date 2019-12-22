@@ -172,7 +172,14 @@
       <_any in="_descriptors"/>
     </TOT>
 
-    <!-- DSM-CC Stream Descriptors Table -->
+    <!-- DSM-CC User-to-Network Messages Table (DSI, DII) -->
+    <DSMCC_user_to_network_messages_table 
+        version="uint5, default=0"
+        current="bool, default=true"
+        table_id_extension="uint16, default=0xFFFF">
+    </DSMCC_user_to_network_messages_table>
+
+      <!-- DSM-CC Stream Descriptors Table -->
     <DSMCC_stream_descriptors_table
         version="uint5, default=0"
         current="bool, default=true"

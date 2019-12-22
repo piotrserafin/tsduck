@@ -9,6 +9,7 @@
     REF_TYPE(DCCT);
     REF_TYPE(DiscontinuityInformationTable);
     REF_TYPE(DSMCCStreamDescriptorsTable);
+    REF_TYPE(DSMCCUserToNetworkMessagesTable);
     REF_TYPE(EIT);
     REF_TYPE(ERT);
     REF_TYPE(ETT);

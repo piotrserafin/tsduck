@@ -43,6 +43,7 @@
 #include "tsDCCT.h"
 #include "tsDiscontinuityInformationTable.h"
 #include "tsDSMCCStreamDescriptorsTable.h"
+#include "tsDSMCCUserToNetworkMessagesTable.h"
 #include "tsEIT.h"
 #include "tsERT.h"
 #include "tsETT.h"
