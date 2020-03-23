@@ -1194,6 +1194,16 @@
       <module DII_identification="uint15, required" association_tag="uint16, required"/>
     </DII_location_descriptor>
 
+    <!-- Must be in an DSM-CC UNM (table id 0x3B) -->
+    <DSMCC_UNM_info_descriptor info="string, required"/>
+
+    <DSMCC_UNM_module_link_descriptor
+      position="first|intermediate|last|uint8, required"
+      module_id="uint16, required"/>
+
+    <DSMCC_UNM_name_descriptor name="string, required"/>
+    <DSMCC_UNM_type_descriptor type="string, required"/>
+
     <DSNG_descriptor station_identification="string, required"/>
 
     <DTS_descriptor

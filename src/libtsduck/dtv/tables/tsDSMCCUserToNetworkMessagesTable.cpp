@@ -200,8 +200,7 @@ void ts::DSMCCUserToNetworkMessagesTable::DisplaySection(TablesDisplay &display,
         display.displayExtraData(data, size, indent);
 
     } else { //DII
-
-
+        display.displayExtraData(data, size, indent);
     }
 }
 

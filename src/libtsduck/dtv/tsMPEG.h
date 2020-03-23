@@ -1137,6 +1137,22 @@ namespace ts {
         DID_AIT_APP_USAGE       = 0x16, //!< DID for AIT application_usage_descriptor.
         DID_AIT_APP_BOUNDARY    = 0x17, //!< DID for AIT simple_application_boundary_descriptor.
 
+        // Valid in DVB data carousel context (ISO/IEC 13818-6, ETSI EN 301 192, ETSI TR 101 202, ETSI TS 102 809):
+
+        DID_DSMCC_UNM_TYPE              = 0x01, //!< DID for DSM-CC UNM DSI/DII type_descriptor.
+        DID_DSMCC_UNM_NAME              = 0x02, //!< DID for DSM-CC UNM DSI/DII name_descriptor.
+        DID_DSMCC_UNM_INFO              = 0x03, //!< DID for DSM-CC UNM DSI/DII info_descriptor.
+        DID_DSMCC_UNM_MODULE_LINK       = 0x04, //!< DID for DSM-CC UNM DII module_link_descriptor.
+        DID_DSMCC_UNM_CRC32             = 0x05, //!< DID for DSM-CC UNM DII CRC32_descriptor.
+        DID_DSMCC_UNM_LOCATION          = 0x06, //!< DID for DSM-CC UNM DSI/DII location_descriptor.
+        DID_DSMCC_UNM_EST_DOWNLOAD_TIME = 0x07, //!< DID for DSM-CC UNM DSI/DII est_download_time_descriptor.
+        DID_DSMCC_UNM_GROUP_LINK        = 0x08, //!< DID for DSM-CC UNM DSI group_link_descriptor.
+        DID_DSMCC_UNM_COMPRESSED_MODULE = 0x09, //!< DID for DSM-CC UNM DII compressed_module_descriptor.
+
+        // Valid in DVB object carousel context (ISO/IEC 13818-6, ETSI EN 301 192, ETSI TR 101 202, ETSI TS 102 809):
+
+        DID_DSMCC_UNM_CACHING_PRIORITY  = 0x71, //!< DID for DII caching_priority_descriptor.
+
         // Valid in an INT (IP/MAC Notification Table, ETSI EN 301 192):
 
         DID_INT_SMARTCARD       = 0x06, //!< DID for INT target_smartcard_descriptor
