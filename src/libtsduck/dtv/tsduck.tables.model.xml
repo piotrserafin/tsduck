@@ -1195,6 +1195,7 @@
     </DII_location_descriptor>
 
     <!-- Must be in an DSM-CC UNM (table id 0x3B) -->
+    <DSMCC_UNM_CRC32_descriptor crc32="uint32, required"/>
     <DSMCC_UNM_info_descriptor info="string, required"/>
 
     <DSMCC_UNM_module_link_descriptor

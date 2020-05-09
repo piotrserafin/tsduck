@@ -129,6 +129,7 @@
 #include "tsDeferredAssociationTagsDescriptor.h"
 #include "tsDigitalCopyControlDescriptor.h"
 #include "tsDIILocationDescriptor.h"
+#include "tsDSMCCUNMCRC32Descriptor.h"
 #include "tsDSMCCUNMInfoDescriptor.h"
 #include "tsDSMCCUNMModuleLinkDescriptor.h"
 #include "tsDSMCCUNMNameDescriptor.h"

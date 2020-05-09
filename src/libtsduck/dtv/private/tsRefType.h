@@ -95,6 +95,7 @@
     REF_TYPE(DeferredAssociationTagsDescriptor);
     REF_TYPE(DigitalCopyControlDescriptor);
     REF_TYPE(DIILocationDescriptor);
+    REF_TYPE(DSMCCUNMCRC32Descriptor);
     REF_TYPE(DSMCCUNMInfoDescriptor);
     REF_TYPE(DSMCCUNMModuleLinkDescriptor);
     REF_TYPE(DSMCCUNMNameDescriptor);
