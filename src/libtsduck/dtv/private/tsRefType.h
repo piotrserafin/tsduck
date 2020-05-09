@@ -9,7 +9,7 @@
     REF_TYPE(DCCT);
     REF_TYPE(DiscontinuityInformationTable);
     REF_TYPE(DSMCCStreamDescriptorsTable);
-    REF_TYPE(DSMCCUserToNetworkMessagesTable);
+    REF_TYPE(DSMCCUserToNetworkMessageTable);
     REF_TYPE(EIT);
     REF_TYPE(ERT);
     REF_TYPE(ETT);
@@ -95,6 +95,10 @@
     REF_TYPE(DeferredAssociationTagsDescriptor);
     REF_TYPE(DigitalCopyControlDescriptor);
     REF_TYPE(DIILocationDescriptor);
+    REF_TYPE(DSMCCUNMInfoDescriptor);
+    REF_TYPE(DSMCCUNMModuleLinkDescriptor);
+    REF_TYPE(DSMCCUNMNameDescriptor);
+    REF_TYPE(DSMCCUNMTypeDescriptor);
     REF_TYPE(DSNGDescriptor);
     REF_TYPE(DTGGuidanceDescriptor);
     REF_TYPE(DTGHDSimulcastLogicalChannelDescriptor);
@@ -147,7 +151,6 @@
     REF_TYPE(HybridInformationDescriptor);
     REF_TYPE(IBPDescriptor);
     REF_TYPE(ImageIconDescriptor);
-    REF_TYPE(InfoDescriptor);
     REF_TYPE(IPMACGenericStreamLocationDescriptor);
     REF_TYPE(IPMACPlatformNameDescriptor);
     REF_TYPE(IPMACPlatformProviderNameDescriptor);
@@ -164,7 +167,6 @@
     REF_TYPE(MaximumBitrateDescriptor);
     REF_TYPE(MessageDescriptor);
     REF_TYPE(MetadataSTDDescriptor);
-    REF_TYPE(ModuleLinkDescriptor);
     REF_TYPE(MosaicDescriptor);
     REF_TYPE(MPEG2AACAudioDescriptor);
     REF_TYPE(MPEG2StereoscopicVideoFormatDescriptor);
@@ -177,7 +179,6 @@
     REF_TYPE(MultiplexBufferDescriptor);
     REF_TYPE(MultiplexBufferUtilizationDescriptor);
     REF_TYPE(MVCExtensionDescriptor);
-    REF_TYPE(NameDescriptor);
     REF_TYPE(NetworkChangeNotifyDescriptor);
     REF_TYPE(NetworkNameDescriptor);
     REF_TYPE(NodeRelationDescriptor);
@@ -269,7 +270,6 @@
     REF_TYPE(TransportProtocolDescriptor);
     REF_TYPE(TransportStreamDescriptor);
     REF_TYPE(TSInformationDescriptor);
-    REF_TYPE(TypeDescriptor);
     REF_TYPE(UpdateDescriptor);
     REF_TYPE(URILinkageDescriptor);
     REF_TYPE(VBIDataDescriptor);

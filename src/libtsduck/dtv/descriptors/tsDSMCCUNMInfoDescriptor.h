@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
 //
 // TSDuck - The MPEG Transport Stream Toolkit
-// Copyright (c) 2005-2019, Piotr Serafin
+// Copyright (c) 2005-2020, Piotr Serafin
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -28,42 +28,50 @@
 //----------------------------------------------------------------------------
 //!
 //!  @file
-//!  Representation of a DSM-CC User-to-Network Messages table (DSI, DII).
+//!  Representation of a DSM-CC UNM info_descriptor.
 //!
 //----------------------------------------------------------------------------
 
 #pragma once
-#include "tsAbstractTable.h"
+#include "tsAbstractDescriptor.h"
 
 namespace ts {
     //!
-    //! Representation of a DSM-CC User-to-Network Messages table (DSI, DII).
+    //! Representation of a DSM-CC UNM info_descriptor.
     //!
-    //! @see ISO/IEC 13818-6, ITU-T Rec. 9.2.2 and 9.2.7.
-    //! @ingroup table
+    //! This descriptor cannot be present in other tables than a DSI/DII
+    //! because its tag reuses an MPEG-defined one.
     //!
-    class TSDUCKDLL DSMCCUserToNetworkMessagesTable : public AbstractTable
+    //! @see ETSI EN 301 192, 10.2.4.
+    //! @ingroup descriptor
+    //!
+    class TSDUCKDLL DSMCCUNMInfoDescriptor : public AbstractDescriptor
     {
     public:
-
-        uint16_t table_id_extension; //!< 0x0000 or 0x0001 for DSI all others for DII.
+        // DSMCCUNMInfoDescriptor public members:
+        UString ISO_639_language_code;  //!< Language code, must be 3-chars long.
+        UString info;                   //!< Info about the module.
 
         //!
         //! Default constructor.
-        //! @param [in] vers Table version number.
-        //! @param [in] cur True if table is current, false if table is next.
-        //! @param [in] tid_ext User-defined table id extension.
         //!
-        DSMCCUserToNetworkMessagesTable(uint8_t vers = 0, bool cur = true, uint16_t tid_ext = 0);
+        DSMCCUNMInfoDescriptor();
+
+        //!
+        //! Constructor from a binary descriptor.
+        //! @param [in,out] duck TSDuck execution context.
+        //! @param [in] bin A binary descriptor to deserialize.
+        //!
+        DSMCCUNMInfoDescriptor(DuckContext& duck, const Descriptor& bin);
 
         // Inherited methods
+        virtual void serialize(DuckContext&, Descriptor&) const override;
+        virtual void deserialize(DuckContext&, const Descriptor&) override;
         virtual void fromXML(DuckContext&, const xml::Element*) override;
-        DeclareDisplaySection();
+        DeclareDisplayDescriptor();
 
     protected:
         // Inherited methods
-        virtual void serializeContent(DuckContext&, BinaryTable&) const override;
-        virtual void deserializeContent(DuckContext&, const BinaryTable&) override;
         virtual void buildXML(DuckContext&, xml::Element*) const override;
     };
 }

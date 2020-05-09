@@ -28,41 +28,38 @@
 //----------------------------------------------------------------------------
 //!
 //!  @file
-//!  Representation of an info_descriptor (DSM-CC specific).
+//!  Representation of a DSM-CC UNM name_descriptor
 //!
 //----------------------------------------------------------------------------
 
 #pragma once
 #include "tsAbstractDescriptor.h"
+#include "tsUString.h"
 
 namespace ts {
     //!
-    //! Representation of an info_descriptor (DSM-CC specific).
-    //!
-    //! This descriptor cannot be present in other tables than a DSI/DII
-    //! because its tag reuses an MPEG-defined one.
-    //!
-    //! @see ETSI EN 301 192, 10.2.4.
+    //! Representation of a DSM-CC UNM name_descriptor.
+    //! @see ETSI EN 301 192, 10.2.3.
     //! @ingroup descriptor
     //!
-    class TSDUCKDLL InfoDescriptor : public AbstractDescriptor
+    class TSDUCKDLL DSMCCUNMNameDescriptor : public AbstractDescriptor
     {
     public:
-        // InfoDescriptor public members:
-        UString ISO_639_language_code;  //!< Language code, must be 3-chars long.
-        UString info;                   //!< Info about the module.
+        // DSMCCUNMNameDescriptor public members:
+        UString name; //!< Name of the module or group.
 
         //!
         //! Default constructor.
+        //! @param [in] name Name of the module or group.
         //!
-        InfoDescriptor();
+        DSMCCUNMNameDescriptor(const UString& name = UString());
 
         //!
-        //! Constructor from a binary descriptor.
+        //! Constructor from a binary descriptor
         //! @param [in,out] duck TSDuck execution context.
         //! @param [in] bin A binary descriptor to deserialize.
         //!
-        InfoDescriptor(DuckContext& duck, const Descriptor& bin);
+        DSMCCUNMNameDescriptor(DuckContext& duck, const Descriptor& bin);
 
         // Inherited methods
         virtual void serialize(DuckContext&, Descriptor&) const override;

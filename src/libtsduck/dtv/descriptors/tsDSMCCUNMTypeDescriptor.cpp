@@ -27,32 +27,31 @@
 //
 //----------------------------------------------------------------------------
 //
-//  Representation of a name_descriptor
+//  Representation of a DSM-CC UNM type_descriptor
 //
 //----------------------------------------------------------------------------
 
-#include "tsTypeDescriptor.h"
+#include "tsDSMCCUNMTypeDescriptor.h"
 #include "tsDescriptor.h"
 #include "tsTablesDisplay.h"
-#include "tsTablesFactory.h"
+#include "tsPSIRepository.h"
+#include "tsNames.h"
 #include "tsxmlElement.h"
 TSDUCK_SOURCE;
 
 #define MY_XML_NAME u"DSMCC_UNM_type_descriptor"
+#define MY_CLASS ts::DSMCCUNMTypeDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_TYPE
 #define MY_TID ts::TID_DSMCC_UNM
 #define MY_STD ts::STD_DVB
 
-TS_XML_DESCRIPTOR_FACTORY(ts::TypeDescriptor, MY_XML_NAME);
-TS_ID_DESCRIPTOR_FACTORY(ts::TypeDescriptor, ts::EDID::TableSpecific(MY_DID, MY_TID));
-TS_FACTORY_REGISTER(ts::TypeDescriptor::DisplayDescriptor, ts::EDID::TableSpecific(MY_DID, MY_TID));
-
+TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
 //----------------------------------------------------------------------------
 // Default constructor:
 //----------------------------------------------------------------------------
 
-ts::TypeDescriptor::TypeDescriptor(const UString& type_) :
+ts::DSMCCUNMTypeDescriptor::DSMCCUNMTypeDescriptor(const UString& type_) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
     type(type_)
 {
@@ -64,7 +63,7 @@ ts::TypeDescriptor::TypeDescriptor(const UString& type_) :
 // Constructor from a binary descriptor
 //----------------------------------------------------------------------------
 
-ts::TypeDescriptor::TypeDescriptor(DuckContext& duck, const Descriptor& desc) :
+ts::DSMCCUNMTypeDescriptor::DSMCCUNMTypeDescriptor(DuckContext& duck, const Descriptor& desc) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
     type()
 {
@@ -76,10 +75,10 @@ ts::TypeDescriptor::TypeDescriptor(DuckContext& duck, const Descriptor& desc) :
 // Serialization
 //----------------------------------------------------------------------------
 
-void ts::TypeDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
+void ts::DSMCCUNMTypeDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 {
     ByteBlockPtr bbp(serializeStart());
-    bbp->append(duck.toDVB(type));
+    bbp->append(duck.encoded(type));
     serializeEnd(desc, bbp);
 }
 
@@ -88,12 +87,12 @@ void ts::TypeDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 // Deserialization
 //----------------------------------------------------------------------------
 
-void ts::TypeDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
+void ts::DSMCCUNMTypeDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
     _is_valid = desc.isValid() && desc.tag() == _tag;
 
     if (_is_valid) {
-        type.assign(duck.fromDVB(desc.payload(), desc.payloadSize()));
+        duck.decode(type, desc.payload(), desc.payloadSize());
     }
     else {
         type.clear();
@@ -105,11 +104,13 @@ void ts::TypeDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 // Static method to display a descriptor.
 //----------------------------------------------------------------------------
 
-void ts::TypeDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
+void ts::DSMCCUNMTypeDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
 {
-    std::ostream& strm(display.duck().out());
+    DuckContext& duck(display.duck());
+    std::ostream& strm(duck.out());
     const std::string margin(indent, ' ');
-    strm << margin << "Type: \"" << display.duck().fromDVB(payload, size) << "\"" << std::endl;
+
+    strm << margin << "Type: \"" << duck.decoded(payload, size) << "\"" << std::endl;
 }
 
 
@@ -117,7 +118,7 @@ void ts::TypeDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, cons
 // XML serialization
 //----------------------------------------------------------------------------
 
-void ts::TypeDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
+void ts::DSMCCUNMTypeDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 {
     root->setAttribute(u"type", type);
 }
@@ -127,7 +128,7 @@ void ts::TypeDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::TypeDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+void ts::DSMCCUNMTypeDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
 {
     _is_valid =
         checkXMLName(element) &&

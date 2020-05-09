@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------------
 //
 // TSDuck - The MPEG Transport Stream Toolkit
-// Copyright (c) 2005-2020, Thierry Lelegard
+// Copyright (c) 2005-2020, Piotr Serafin
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -26,55 +26,73 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 //
 //----------------------------------------------------------------------------
+//
+//  Representation of a name_descriptor
+//
+//----------------------------------------------------------------------------
 
-#include "tsInfoDescriptor.h"
+#include "tsDSMCCUNMModuleLinkDescriptor.h"
 #include "tsDescriptor.h"
 #include "tsTablesDisplay.h"
-#include "tsTablesFactory.h"
+#include "tsPSIRepository.h"
+#include "tsNames.h"
 #include "tsxmlElement.h"
 TSDUCK_SOURCE;
 
-#define MY_XML_NAME u"DSMCC_UNM_info_descriptor"
-#define MY_DID ts::DID_DSMCC_UNM_INFO
+#define MY_XML_NAME u"DSMCC_UNM_module_link_descriptor"
+#define MY_CLASS ts::DSMCCUNMModuleLinkDescriptor
+#define MY_DID ts::DID_DSMCC_UNM_MODULE_LINK
 #define MY_TID ts::TID_DSMCC_UNM
 #define MY_STD ts::STD_DVB
 
-TS_XML_TABSPEC_DESCRIPTOR_FACTORY(ts::InfoDescriptor, MY_XML_NAME, MY_TID);
-TS_ID_DESCRIPTOR_FACTORY(ts::InfoDescriptor, ts::EDID::TableSpecific(MY_DID, MY_TID));
-TS_FACTORY_REGISTER(ts::InfoDescriptor::DisplayDescriptor, ts::EDID::TableSpecific(MY_DID, MY_TID));
-
+TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
 //----------------------------------------------------------------------------
-// Constructors
+// Default constructor:
 //----------------------------------------------------------------------------
 
-ts::InfoDescriptor::InfoDescriptor() :
+ts::DSMCCUNMModuleLinkDescriptor::DSMCCUNMModuleLinkDescriptor() :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
-    ISO_639_language_code(),
-    info()
+    position(0),
+    module_id(0)
 {
     _is_valid = true;
 }
 
-ts::InfoDescriptor::InfoDescriptor(DuckContext& duck, const Descriptor& desc) :
-    InfoDescriptor()
+
+//----------------------------------------------------------------------------
+// Constructor from a binary descriptor
+//----------------------------------------------------------------------------
+
+ts::DSMCCUNMModuleLinkDescriptor::DSMCCUNMModuleLinkDescriptor(DuckContext& duck, const Descriptor& desc) :
+    AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
+    position(0),
+    module_id(0)
 {
     deserialize(duck, desc);
 }
+
+//----------------------------------------------------------------------------
+// Enumeration description of position.
+//----------------------------------------------------------------------------
+
+const ts::Enumeration ts::DSMCCUNMModuleLinkDescriptor::PositionEnum({
+    {u"first",   ts::DSMCCUNMModuleLinkDescriptor::FIRST},
+    {u"intermediate",   ts::DSMCCUNMModuleLinkDescriptor::INTERMEDIATE},
+    {u"last",       ts::DSMCCUNMModuleLinkDescriptor::LAST},
+    {u"undefined",  ts::DSMCCUNMModuleLinkDescriptor::UNDEFINED}
+});
 
 
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
 
-void ts::InfoDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
+void ts::DSMCCUNMModuleLinkDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 {
     ByteBlockPtr bbp(serializeStart());
-    if (!SerializeLanguageCode(*bbp, ISO_639_language_code)) {
-        desc.invalidate();
-        return;
-    }
-    bbp->append(duck.toDVBWithByteLength(info));
+    bbp->appendUInt8(position);
+    bbp->appendUInt16(module_id);
     serializeEnd(desc, bbp);
 }
 
@@ -83,21 +101,21 @@ void ts::InfoDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 // Deserialization
 //----------------------------------------------------------------------------
 
-void ts::InfoDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
+void ts::DSMCCUNMModuleLinkDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size >= 5;
+    _is_valid = desc.isValid() && desc.tag() == _tag && size == 3;
 
     if (_is_valid) {
-        ISO_639_language_code = DeserializeLanguageCode(data);
-        data += 3; size -= 3;
-        info = duck.fromDVBWithByteLength(data, size);
+        position = data[0];
+        data++; size--;
+        module_id = GetUInt16(data);
     }
     else {
-        ISO_639_language_code.clear();
-        info.clear();
+        position = 0xFF;
+        module_id = 0x0000;
     }
 }
 
@@ -106,19 +124,22 @@ void ts::InfoDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 // Static method to display a descriptor.
 //----------------------------------------------------------------------------
 
-void ts::InfoDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* data, size_t size, int indent, TID tid, PDS pds)
+void ts::DSMCCUNMModuleLinkDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
 {
-    std::ostream& strm(display.duck().out());
+    DuckContext& duck(display.duck());
+    std::ostream& strm(duck.out());
     const std::string margin(indent, ' ');
 
-    if (size >= 4) {
-        const UString lang(DeserializeLanguageCode(data));
-        data += 3; size -= 3;
-        const UString info(display.duck().fromDVBWithByteLength(data, size));
-        strm << margin << "Language: " << lang << std::endl
-             << margin << "Info: \"" << info << "\"" << std::endl;
+    if (size >= 1) {
+        const uint8_t position = payload[0];
+        payload++; size--;
+        const uint16_t module_id = GetUInt16(payload);
+        
+        strm << margin << UString::Format(u"Position: %d (%s)", {position, PositionEnum.name(position)}) << std::endl;
+        strm << margin << UString::Format(u"ModuleId: 0x%X ", {module_id}) << std::endl;
     }
-    display.displayExtraData(data, size, indent);
+
+    display.displayExtraData(payload, size, indent);
 }
 
 
@@ -126,10 +147,10 @@ void ts::InfoDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, cons
 // XML serialization
 //----------------------------------------------------------------------------
 
-void ts::InfoDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
+void ts::DSMCCUNMModuleLinkDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 {
-    root->setAttribute(u"ISO_639_language_code", ISO_639_language_code);
-    root->addElement(u"info")->addText(info);
+    root->setEnumAttribute(PositionEnum, u"position", position);
+    root->setIntAttribute(u"module_id", module_id);
 }
 
 
@@ -137,10 +158,10 @@ void ts::InfoDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::InfoDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+void ts::DSMCCUNMModuleLinkDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
 {
     _is_valid =
         checkXMLName(element) &&
-        element->getAttribute(ISO_639_language_code, u"ISO_639_language_code", true, u"", 3, 3) &&
-        element->getTextChild(info, u"info");
+        element->getIntEnumAttribute(position, PositionEnum, u"position", 0x01) &&
+        element->getIntAttribute(position, u"module_id", 0x0000);
 }

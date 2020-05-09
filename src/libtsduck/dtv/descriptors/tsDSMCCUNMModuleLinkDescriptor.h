@@ -28,38 +28,54 @@
 //----------------------------------------------------------------------------
 //!
 //!  @file
-//!  Representation of a type_descriptor
+//!  Representation of a DSM-CC UNM module_link_descriptor
 //!
 //----------------------------------------------------------------------------
 
 #pragma once
 #include "tsAbstractDescriptor.h"
-#include "tsUString.h"
+#include "tsEnumeration.h"
 
 namespace ts {
     //!
-    //! Representation of a type_descriptor.
-    //! @see ETSI EN 301 192, 10.2.2.
+    //! Representation of a DSM-CC UNM module_link_descriptor.
+    //! @see ETSI EN 301 192, 10.2.5.
     //! @ingroup descriptor
     //!
-    class TSDUCKDLL TypeDescriptor : public AbstractDescriptor
+    class TSDUCKDLL DSMCCUNMModuleLinkDescriptor : public AbstractDescriptor
     {
     public:
-        // TypeDescriptor public members:
-        UString type; //!< Type of the module or group.
+
+        //!
+        //! Position identifier in @a position field.
+        //!
+        enum {
+            FIRST        = 0x00, //!< First module of the list.
+            INTERMEDIATE = 0x01, //!< Intermediate module in the list.
+            LAST         = 0x02, //!< Last module of the list.
+            UNDEFINED    = 0xFF  //!< Position not defined.
+        };
+
+        //!
+        //! Enumeration description of position.
+        //!
+        static const Enumeration PositionEnum;
+
+        // DSMCCUNMModuleLinkDescriptor public members:
+        uint8_t position;   //!< Position of the module in the chain.
+        uint16_t module_id; //!< Module ID of the next module in the list.
 
         //!
         //! Default constructor.
-        //! @param [in] type Type of the module or group.
         //!
-        TypeDescriptor(const UString& type = UString());
+        DSMCCUNMModuleLinkDescriptor();
 
         //!
         //! Constructor from a binary descriptor
         //! @param [in,out] duck TSDuck execution context.
         //! @param [in] bin A binary descriptor to deserialize.
         //!
-        TypeDescriptor(DuckContext& duck, const Descriptor& bin);
+        DSMCCUNMModuleLinkDescriptor(DuckContext& duck, const Descriptor& bin);
 
         // Inherited methods
         virtual void serialize(DuckContext&, Descriptor&) const override;

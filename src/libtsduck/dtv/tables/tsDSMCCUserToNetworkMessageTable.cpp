@@ -27,26 +27,25 @@
 //
 //----------------------------------------------------------------------------
 
-#include "tsDSMCCUserToNetworkMessagesTable.h"
+#include "tsDSMCCUserToNetworkMessageTable.h"
 #include "tsBinaryTable.h"
 #include "tsTablesDisplay.h"
-#include "tsTablesFactory.h"
+#include "tsPSIRepository.h"
 #include "tsxmlElement.h"
 TSDUCK_SOURCE;
 
 #define MY_XML_NAME u"DSMCC_user_to_network_messages_table"
+#define MY_CLASS ts::DSMCCUserToNetworkMessageTable
 #define MY_TID ts::TID_DSMCC_UNM
 #define MY_STD ts::STD_MPEG
 
-TS_XML_TABLE_FACTORY(ts::DSMCCUserToNetworkMessagesTable, MY_XML_NAME);
-TS_ID_TABLE_FACTORY(ts::DSMCCUserToNetworkMessagesTable, MY_TID, MY_STD);
-TS_FACTORY_REGISTER(ts::DSMCCUserToNetworkMessagesTable::DisplaySection, MY_TID);
+TS_REGISTER_TABLE(MY_CLASS, {MY_TID}, MY_STD, MY_XML_NAME, MY_CLASS::DisplaySection);
 
 //----------------------------------------------------------------------------
 // Constructors and assignment.
 //----------------------------------------------------------------------------
 
-ts::DSMCCUserToNetworkMessagesTable::DSMCCUserToNetworkMessagesTable(uint8_t vers, bool cur, uint16_t tid_ext) : AbstractTable(MY_TID, MY_XML_NAME, MY_STD),
+ts::DSMCCUserToNetworkMessageTable::DSMCCUserToNetworkMessageTable(uint8_t vers, bool cur, uint16_t tid_ext) : AbstractTable(MY_TID, MY_XML_NAME, MY_STD),
                                                                                                                  table_id_extension(tid_ext)
 {
 }
@@ -55,7 +54,7 @@ ts::DSMCCUserToNetworkMessagesTable::DSMCCUserToNetworkMessagesTable(uint8_t ver
 // Deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUserToNetworkMessagesTable::deserializeContent(DuckContext &duck, const BinaryTable &table)
+void ts::DSMCCUserToNetworkMessageTable::deserializeContent(DuckContext &duck, const BinaryTable &table)
 {
 }
 
@@ -63,7 +62,7 @@ void ts::DSMCCUserToNetworkMessagesTable::deserializeContent(DuckContext &duck, 
 // Serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUserToNetworkMessagesTable::serializeContent(DuckContext &duck, BinaryTable &table) const
+void ts::DSMCCUserToNetworkMessageTable::serializeContent(DuckContext &duck, BinaryTable &table) const
 {
 }
 
@@ -71,10 +70,12 @@ void ts::DSMCCUserToNetworkMessagesTable::serializeContent(DuckContext &duck, Bi
 // A static method to display a section.
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUserToNetworkMessagesTable::DisplaySection(TablesDisplay &display, const ts::Section &section, int indent)
+void ts::DSMCCUserToNetworkMessageTable::DisplaySection(TablesDisplay &display, const ts::Section &section, int indent)
 {
-    std::ostream &strm(display.duck().out());
+    DuckContext& duck(display.duck());
+    std::ostream& strm(duck.out());
     const std::string margin(indent, ' ');
+    
     const uint8_t *data = section.payload();
     size_t size = section.payloadSize();
     uint16_t tidext = section.tableIdExtension();
@@ -208,7 +209,7 @@ void ts::DSMCCUserToNetworkMessagesTable::DisplaySection(TablesDisplay &display,
 // XML serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUserToNetworkMessagesTable::buildXML(DuckContext &duck, xml::Element *root) const
+void ts::DSMCCUserToNetworkMessageTable::buildXML(DuckContext &duck, xml::Element *root) const
 {
     root->setIntAttribute(u"table_id_extension", table_id_extension, true);
 }
@@ -217,6 +218,6 @@ void ts::DSMCCUserToNetworkMessagesTable::buildXML(DuckContext &duck, xml::Eleme
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUserToNetworkMessagesTable::fromXML(DuckContext &duck, const xml::Element *element)
+void ts::DSMCCUserToNetworkMessageTable::fromXML(DuckContext &duck, const xml::Element *element)
 {
 }

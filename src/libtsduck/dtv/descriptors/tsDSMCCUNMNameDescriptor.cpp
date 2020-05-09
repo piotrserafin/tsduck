@@ -27,35 +27,33 @@
 //
 //----------------------------------------------------------------------------
 //
-//  Representation of a name_descriptor
+//  Representation of a DSM-CC UNM name_descriptor
 //
 //----------------------------------------------------------------------------
 
-#include "tsModuleLinkDescriptor.h"
+#include "tsDSMCCUNMNameDescriptor.h"
 #include "tsDescriptor.h"
 #include "tsTablesDisplay.h"
-#include "tsTablesFactory.h"
+#include "tsPSIRepository.h"
+#include "tsNames.h"
 #include "tsxmlElement.h"
 TSDUCK_SOURCE;
 
-#define MY_XML_NAME u"DSMCC_UNM_module_link_descriptor"
-#define MY_DID ts::DID_DSMCC_UNM_MODULE_LINK
+#define MY_XML_NAME u"DSMCC_UNM_name_descriptor"
+#define MY_CLASS ts::DSMCCUNMNameDescriptor
+#define MY_DID ts::DID_DSMCC_UNM_NAME
 #define MY_TID ts::TID_DSMCC_UNM
 #define MY_STD ts::STD_DVB
 
-TS_XML_DESCRIPTOR_FACTORY(ts::ModuleLinkDescriptor, MY_XML_NAME);
-TS_ID_DESCRIPTOR_FACTORY(ts::ModuleLinkDescriptor, ts::EDID::TableSpecific(MY_DID, MY_TID));
-TS_FACTORY_REGISTER(ts::ModuleLinkDescriptor::DisplayDescriptor, ts::EDID::TableSpecific(MY_DID, MY_TID));
-
+TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
 //----------------------------------------------------------------------------
 // Default constructor:
 //----------------------------------------------------------------------------
 
-ts::ModuleLinkDescriptor::ModuleLinkDescriptor() :
+ts::DSMCCUNMNameDescriptor::DSMCCUNMNameDescriptor(const UString& name_) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
-    position(0),
-    module_id(0)
+    name(name_)
 {
     _is_valid = true;
 }
@@ -65,35 +63,22 @@ ts::ModuleLinkDescriptor::ModuleLinkDescriptor() :
 // Constructor from a binary descriptor
 //----------------------------------------------------------------------------
 
-ts::ModuleLinkDescriptor::ModuleLinkDescriptor(DuckContext& duck, const Descriptor& desc) :
+ts::DSMCCUNMNameDescriptor::DSMCCUNMNameDescriptor(DuckContext& duck, const Descriptor& desc) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
-    position(0),
-    module_id(0)
+    name()
 {
     deserialize(duck, desc);
 }
-
-//----------------------------------------------------------------------------
-// Enumeration description of position.
-//----------------------------------------------------------------------------
-
-const ts::Enumeration ts::ModuleLinkDescriptor::PositionEnum({
-    {u"first",   ts::ModuleLinkDescriptor::FIRST},
-    {u"intermediate",   ts::ModuleLinkDescriptor::INTERMEDIATE},
-    {u"last",       ts::ModuleLinkDescriptor::LAST},
-    {u"undefined",  ts::ModuleLinkDescriptor::UNDEFINED}
-});
 
 
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
 
-void ts::ModuleLinkDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
+void ts::DSMCCUNMNameDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 {
     ByteBlockPtr bbp(serializeStart());
-    bbp->appendUInt8(position);
-    bbp->appendUInt16(module_id);
+    bbp->append(duck.encoded(name));
     serializeEnd(desc, bbp);
 }
 
@@ -102,21 +87,15 @@ void ts::ModuleLinkDescriptor::serialize(DuckContext& duck, Descriptor& desc) co
 // Deserialization
 //----------------------------------------------------------------------------
 
-void ts::ModuleLinkDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
+void ts::DSMCCUNMNameDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
-    const uint8_t* data = desc.payload();
-    size_t size = desc.payloadSize();
-
-    _is_valid = desc.isValid() && desc.tag() == _tag && size == 3;
+    _is_valid = desc.isValid() && desc.tag() == _tag;
 
     if (_is_valid) {
-        position = data[0];
-        data++; size--;
-        module_id = GetUInt16(data);
+        duck.decode(name, desc.payload(), desc.payloadSize());
     }
     else {
-        position = 0xFF;
-        module_id = 0x0000;
+        name.clear();
     }
 }
 
@@ -125,21 +104,13 @@ void ts::ModuleLinkDescriptor::deserialize(DuckContext& duck, const Descriptor& 
 // Static method to display a descriptor.
 //----------------------------------------------------------------------------
 
-void ts::ModuleLinkDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
+void ts::DSMCCUNMNameDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
 {
-    std::ostream& strm(display.duck().out());
+    DuckContext& duck(display.duck());
+    std::ostream& strm(duck.out());
     const std::string margin(indent, ' ');
 
-    if (size >= 1) {
-        const uint8_t position = payload[0];
-        payload++; size--;
-        const uint16_t module_id = GetUInt16(payload);
-        
-        strm << margin << UString::Format(u"Position: %d (%s)", {position, PositionEnum.name(position)}) << std::endl;
-        strm << margin << UString::Format(u"ModuleId: 0x%X ", {module_id}) << std::endl;
-    }
-
-    display.displayExtraData(payload, size, indent);
+    strm << margin << "Name: \"" << duck.decoded(payload, size) << "\"" << std::endl;
 }
 
 
@@ -147,10 +118,9 @@ void ts::ModuleLinkDescriptor::DisplayDescriptor(TablesDisplay& display, DID did
 // XML serialization
 //----------------------------------------------------------------------------
 
-void ts::ModuleLinkDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
+void ts::DSMCCUNMNameDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 {
-    root->setEnumAttribute(PositionEnum, u"position", position);
-    root->setIntAttribute(u"module_id", module_id);
+    root->setAttribute(u"name", name);
 }
 
 
@@ -158,10 +128,9 @@ void ts::ModuleLinkDescriptor::buildXML(DuckContext& duck, xml::Element* root) c
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::ModuleLinkDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+void ts::DSMCCUNMNameDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
 {
     _is_valid =
         checkXMLName(element) &&
-        element->getIntEnumAttribute(position, PositionEnum, u"position", 0x01) &&
-        element->getIntAttribute(position, u"module_id", 0x0000);
+        element->getAttribute(name, u"name", true, u"", 0, MAX_DESCRIPTOR_SIZE - 2);
 }
