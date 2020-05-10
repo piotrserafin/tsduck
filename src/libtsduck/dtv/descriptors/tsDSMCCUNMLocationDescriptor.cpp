@@ -27,11 +27,11 @@
 //
 //----------------------------------------------------------------------------
 //
-//  Representation of a DSM-CC UNM info_descriptor.
+//  Representation of a DSM-CC UNM location_descriptor.
 //
 //----------------------------------------------------------------------------
 
-#include "tsDSMCCUNMInfoDescriptor.h"
+#include "tsDSMCCUNMLocationDescriptor.h"
 #include "tsDescriptor.h"
 #include "tsTablesDisplay.h"
 #include "tsPSIRepository.h"
@@ -39,45 +39,45 @@
 #include "tsxmlElement.h"
 TSDUCK_SOURCE;
 
-#define MY_XML_NAME u"DSMCC_UNM_info_descriptor"
-#define MY_CLASS ts::DSMCCUNMInfoDescriptor
-#define MY_DID ts::DID_DSMCC_UNM_INFO
+#define MY_XML_NAME u"DSMCC_UNM_location_descriptor"
+#define MY_CLASS ts::DSMCCUNMLocationDescriptor
+#define MY_DID ts::DID_DSMCC_UNM_LOCATION
 #define MY_TID ts::TID_DSMCC_UNM
 #define MY_STD ts::STD_DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
 //----------------------------------------------------------------------------
-// Constructors
+// Default constructor:
 //----------------------------------------------------------------------------
 
-ts::DSMCCUNMInfoDescriptor::DSMCCUNMInfoDescriptor() :
+ts::DSMCCUNMLocationDescriptor::DSMCCUNMLocationDescriptor(uint8_t _location) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
-    ISO_639_language_code(),
-    info()
+    location(_location)
 {
     _is_valid = true;
 }
 
-ts::DSMCCUNMInfoDescriptor::DSMCCUNMInfoDescriptor(DuckContext& duck, const Descriptor& desc) :
-    DSMCCUNMInfoDescriptor()
+
+//----------------------------------------------------------------------------
+// Constructor from a binary descriptor
+//----------------------------------------------------------------------------
+
+ts::DSMCCUNMLocationDescriptor::DSMCCUNMLocationDescriptor(DuckContext& duck, const Descriptor& desc) :
+    AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
+    location(0xFF)
 {
     deserialize(duck, desc);
 }
-
 
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
+void ts::DSMCCUNMLocationDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 {
     ByteBlockPtr bbp(serializeStart());
-    if (!SerializeLanguageCode(*bbp, ISO_639_language_code)) {
-        desc.invalidate();
-        return;
-    }
-    bbp->append(duck.encoded(info));
+    bbp->appendUInt8(location);
     serializeEnd(desc, bbp);
 }
 
@@ -86,21 +86,15 @@ void ts::DSMCCUNMInfoDescriptor::serialize(DuckContext& duck, Descriptor& desc) 
 // Deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
+void ts::DSMCCUNMLocationDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size >= 5;
+    _is_valid = desc.isValid() && desc.tag() == _tag && size == 1;
 
     if (_is_valid) {
-        ISO_639_language_code = DeserializeLanguageCode(data);
-        data += 3; size -= 3;
-        duck.decodeWithByteLength(info, data, size);
-    }
-    else {
-        ISO_639_language_code.clear();
-        info.clear();
+        location = data[0];
     }
 }
 
@@ -109,20 +103,18 @@ void ts::DSMCCUNMInfoDescriptor::deserialize(DuckContext& duck, const Descriptor
 // Static method to display a descriptor.
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* data, size_t size, int indent, TID tid, PDS pds)
+void ts::DSMCCUNMLocationDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
 {
     DuckContext& duck(display.duck());
     std::ostream& strm(duck.out());
     const std::string margin(indent, ' ');
 
-    if (size >= 4) {
-        const UString lang(DeserializeLanguageCode(data));
-        data += 3; size -= 3;
-        const UString info(duck.decodedWithByteLength(data, size));
-        strm << margin << "Language: " << lang << std::endl
-             << margin << "Info: \"" << info << "\"" << std::endl;
+    if (size == 1) {
+        const uint8_t position = payload[0];
+        strm << margin << UString::Format(u"Location: 0x%X ", {position}) << std::endl;
     }
-    display.displayExtraData(data, size, indent);
+
+    display.displayExtraData(payload, size, indent);
 }
 
 
@@ -130,10 +122,9 @@ void ts::DSMCCUNMInfoDescriptor::DisplayDescriptor(TablesDisplay& display, DID d
 // XML serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
+void ts::DSMCCUNMLocationDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 {
-    root->setAttribute(u"ISO_639_language_code", ISO_639_language_code);
-    root->addElement(u"info")->addText(info);
+    root->setIntAttribute(u"location", location);
 }
 
 
@@ -141,10 +132,9 @@ void ts::DSMCCUNMInfoDescriptor::buildXML(DuckContext& duck, xml::Element* root)
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+void ts::DSMCCUNMLocationDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
 {
     _is_valid =
         checkXMLName(element) &&
-        element->getAttribute(ISO_639_language_code, u"ISO_639_language_code", true, u"", 3, 3) &&
-        element->getTextChild(info, u"info");
+        element->getIntAttribute(location, u"location", 0xFF);
 }

@@ -27,11 +27,11 @@
 //
 //----------------------------------------------------------------------------
 //
-//  Representation of a DSM-CC UNM info_descriptor.
+//  Representation of a DSM-CC UNM group_link_descriptor.
 //
 //----------------------------------------------------------------------------
 
-#include "tsDSMCCUNMInfoDescriptor.h"
+#include "tsDSMCCUNMGroupLinkDescriptor.h"
 #include "tsDescriptor.h"
 #include "tsTablesDisplay.h"
 #include "tsPSIRepository.h"
@@ -39,68 +39,81 @@
 #include "tsxmlElement.h"
 TSDUCK_SOURCE;
 
-#define MY_XML_NAME u"DSMCC_UNM_info_descriptor"
-#define MY_CLASS ts::DSMCCUNMInfoDescriptor
-#define MY_DID ts::DID_DSMCC_UNM_INFO
+#define MY_XML_NAME u"DSMCC_UNM_group_link_descriptor"
+#define MY_CLASS ts::DSMCCUNMGroupLinkDescriptor
+#define MY_DID ts::DID_DSMCC_UNM_GROUP_LINK
 #define MY_TID ts::TID_DSMCC_UNM
 #define MY_STD ts::STD_DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
 //----------------------------------------------------------------------------
-// Constructors
+// Default constructor:
 //----------------------------------------------------------------------------
 
-ts::DSMCCUNMInfoDescriptor::DSMCCUNMInfoDescriptor() :
+ts::DSMCCUNMGroupLinkDescriptor::DSMCCUNMGroupLinkDescriptor() :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
-    ISO_639_language_code(),
-    info()
+    position(0xFF),
+    group_id(0xFFFFFFFF)
 {
     _is_valid = true;
 }
 
-ts::DSMCCUNMInfoDescriptor::DSMCCUNMInfoDescriptor(DuckContext& duck, const Descriptor& desc) :
-    DSMCCUNMInfoDescriptor()
+
+//----------------------------------------------------------------------------
+// Constructor from a binary descriptor
+//----------------------------------------------------------------------------
+
+ts::DSMCCUNMGroupLinkDescriptor::DSMCCUNMGroupLinkDescriptor(DuckContext& duck, const Descriptor& desc) :
+    AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
+    position(0xFF),
+    group_id(0xFFFFFFFF)
 {
     deserialize(duck, desc);
 }
 
+//----------------------------------------------------------------------------
+// Enumeration description of position.
+//----------------------------------------------------------------------------
+
+const ts::Enumeration ts::DSMCCUNMGroupLinkDescriptor::PositionEnum({
+    {u"first",   ts::DSMCCUNMGroupLinkDescriptor::FIRST},
+    {u"intermediate",   ts::DSMCCUNMGroupLinkDescriptor::INTERMEDIATE},
+    {u"last",       ts::DSMCCUNMGroupLinkDescriptor::LAST},
+    {u"undefined",  ts::DSMCCUNMGroupLinkDescriptor::UNDEFINED}
+});
 
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
+void ts::DSMCCUNMGroupLinkDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 {
     ByteBlockPtr bbp(serializeStart());
-    if (!SerializeLanguageCode(*bbp, ISO_639_language_code)) {
-        desc.invalidate();
-        return;
-    }
-    bbp->append(duck.encoded(info));
+    bbp->appendUInt8(position);
+    bbp->appendUInt32(group_id);
     serializeEnd(desc, bbp);
 }
-
 
 //----------------------------------------------------------------------------
 // Deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
+void ts::DSMCCUNMGroupLinkDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size >= 5;
+    _is_valid = desc.isValid() && desc.tag() == _tag && size == 5;
 
     if (_is_valid) {
-        ISO_639_language_code = DeserializeLanguageCode(data);
-        data += 3; size -= 3;
-        duck.decodeWithByteLength(info, data, size);
+        position = data[0];
+        data++; size--;
+        group_id = GetUInt32(data);
     }
     else {
-        ISO_639_language_code.clear();
-        info.clear();
+        position = 0xFF;
+        group_id = 0xFFFFFFFF;
     }
 }
 
@@ -109,42 +122,42 @@ void ts::DSMCCUNMInfoDescriptor::deserialize(DuckContext& duck, const Descriptor
 // Static method to display a descriptor.
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* data, size_t size, int indent, TID tid, PDS pds)
+void ts::DSMCCUNMGroupLinkDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
 {
     DuckContext& duck(display.duck());
     std::ostream& strm(duck.out());
     const std::string margin(indent, ' ');
 
-    if (size >= 4) {
-        const UString lang(DeserializeLanguageCode(data));
-        data += 3; size -= 3;
-        const UString info(duck.decodedWithByteLength(data, size));
-        strm << margin << "Language: " << lang << std::endl
-             << margin << "Info: \"" << info << "\"" << std::endl;
+    if (size >= 1) {
+        const uint8_t position = payload[0];
+        payload++; size--;
+        const uint32_t group_id = GetUInt32(payload);
+        
+        strm << margin << UString::Format(u"Position: %d (%s)", {position, PositionEnum.name(position)}) << std::endl;
+        strm << margin << UString::Format(u"GroupId: 0x%X ", {group_id}) << std::endl;
     }
-    display.displayExtraData(data, size, indent);
-}
 
+    display.displayExtraData(payload, size, indent);
+}
 
 //----------------------------------------------------------------------------
 // XML serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
+void ts::DSMCCUNMGroupLinkDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 {
-    root->setAttribute(u"ISO_639_language_code", ISO_639_language_code);
-    root->addElement(u"info")->addText(info);
+    root->setEnumAttribute(PositionEnum, u"position", position);
+    root->setIntAttribute(u"group_id", group_id);
 }
-
 
 //----------------------------------------------------------------------------
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+void ts::DSMCCUNMGroupLinkDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
 {
     _is_valid =
         checkXMLName(element) &&
-        element->getAttribute(ISO_639_language_code, u"ISO_639_language_code", true, u"", 3, 3) &&
-        element->getTextChild(info, u"info");
+        element->getIntEnumAttribute(position, PositionEnum, u"position", 0xFF) &&
+        element->getIntAttribute(group_id, u"group_id", 0xFFFFFFFF);
 }

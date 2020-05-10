@@ -27,7 +27,7 @@
 //
 //----------------------------------------------------------------------------
 //
-//  Representation of a name_descriptor
+//  Representation of a DSM-CC UNM module_link_descriptor.
 //
 //----------------------------------------------------------------------------
 
@@ -53,12 +53,11 @@ TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML
 
 ts::DSMCCUNMModuleLinkDescriptor::DSMCCUNMModuleLinkDescriptor() :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
-    position(0),
-    module_id(0)
+    position(0xFF),
+    module_id(0xFFFF)
 {
     _is_valid = true;
 }
-
 
 //----------------------------------------------------------------------------
 // Constructor from a binary descriptor
@@ -66,8 +65,8 @@ ts::DSMCCUNMModuleLinkDescriptor::DSMCCUNMModuleLinkDescriptor() :
 
 ts::DSMCCUNMModuleLinkDescriptor::DSMCCUNMModuleLinkDescriptor(DuckContext& duck, const Descriptor& desc) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
-    position(0),
-    module_id(0)
+    position(0xFF),
+    module_id(0xFFFF)
 {
     deserialize(duck, desc);
 }
@@ -83,7 +82,6 @@ const ts::Enumeration ts::DSMCCUNMModuleLinkDescriptor::PositionEnum({
     {u"undefined",  ts::DSMCCUNMModuleLinkDescriptor::UNDEFINED}
 });
 
-
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
@@ -95,7 +93,6 @@ void ts::DSMCCUNMModuleLinkDescriptor::serialize(DuckContext& duck, Descriptor& 
     bbp->appendUInt16(module_id);
     serializeEnd(desc, bbp);
 }
-
 
 //----------------------------------------------------------------------------
 // Deserialization
@@ -115,10 +112,9 @@ void ts::DSMCCUNMModuleLinkDescriptor::deserialize(DuckContext& duck, const Desc
     }
     else {
         position = 0xFF;
-        module_id = 0x0000;
+        module_id = 0xFFFF;
     }
 }
-
 
 //----------------------------------------------------------------------------
 // Static method to display a descriptor.
@@ -142,7 +138,6 @@ void ts::DSMCCUNMModuleLinkDescriptor::DisplayDescriptor(TablesDisplay& display,
     display.displayExtraData(payload, size, indent);
 }
 
-
 //----------------------------------------------------------------------------
 // XML serialization
 //----------------------------------------------------------------------------
@@ -153,7 +148,6 @@ void ts::DSMCCUNMModuleLinkDescriptor::buildXML(DuckContext& duck, xml::Element*
     root->setIntAttribute(u"module_id", module_id);
 }
 
-
 //----------------------------------------------------------------------------
 // XML deserialization
 //----------------------------------------------------------------------------
@@ -162,6 +156,6 @@ void ts::DSMCCUNMModuleLinkDescriptor::fromXML(DuckContext& duck, const xml::Ele
 {
     _is_valid =
         checkXMLName(element) &&
-        element->getIntEnumAttribute(position, PositionEnum, u"position", 0x01) &&
-        element->getIntAttribute(position, u"module_id", 0x0000);
+        element->getIntEnumAttribute(position, PositionEnum, u"position", 0xFF) &&
+        element->getIntAttribute(module_id, u"module_id", 0xFFFF);
 }

@@ -28,38 +28,38 @@
 //----------------------------------------------------------------------------
 //!
 //!  @file
-//!  Representation of a DSM-CC UNM type_descriptor.
+//!  Representation of a DSM-CC UNM compressed_module_descriptor.
 //!
 //----------------------------------------------------------------------------
 
 #pragma once
 #include "tsAbstractDescriptor.h"
-#include "tsUString.h"
 
 namespace ts {
     //!
-    //! Representation of a DSM-CC UNM type_descriptor.
-    //! @see ETSI EN 301 192, 10.2.2.
+    //! Representation of a DSM-CC UNM compressed_module_descriptor.
+    //! @see ETSI EN 301 192, 10.2.11.
     //! @ingroup descriptor
     //!
-    class TSDUCKDLL DSMCCUNMTypeDescriptor : public AbstractDescriptor
+    class TSDUCKDLL DSMCCUNMCompressedModuleDescriptor : public AbstractDescriptor
     {
     public:
-        // DSMCCUNMTypeDescriptor public members:
-        UString type; //!< Type of the module or group.
+
+        // DSMCCUNMCompressedModuleDescriptor public members:
+        uint8_t compression_method; //!< Field identifying the compression method (zlib structure of RFC 1950).
+        uint32_t original_size; //!< Size in bytes of the module prior to compression.
 
         //!
         //! Default constructor.
-        //! @param [in] type Type of the module or group.
         //!
-        DSMCCUNMTypeDescriptor(const UString& type = UString());
+        DSMCCUNMCompressedModuleDescriptor();
 
         //!
         //! Constructor from a binary descriptor
         //! @param [in,out] duck TSDuck execution context.
         //! @param [in] bin A binary descriptor to deserialize.
         //!
-        DSMCCUNMTypeDescriptor(DuckContext& duck, const Descriptor& bin);
+        DSMCCUNMCompressedModuleDescriptor(DuckContext& duck, const Descriptor& bin);
 
         // Inherited methods
         virtual void serialize(DuckContext&, Descriptor&) const override;

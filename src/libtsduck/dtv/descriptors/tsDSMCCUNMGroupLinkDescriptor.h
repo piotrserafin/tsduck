@@ -28,38 +28,54 @@
 //----------------------------------------------------------------------------
 //!
 //!  @file
-//!  Representation of a DSM-CC UNM type_descriptor.
+//!  Representation of a DSM-CC UNM group_link_descriptor.
 //!
 //----------------------------------------------------------------------------
 
 #pragma once
 #include "tsAbstractDescriptor.h"
-#include "tsUString.h"
+#include "tsEnumeration.h"
 
 namespace ts {
     //!
-    //! Representation of a DSM-CC UNM type_descriptor.
-    //! @see ETSI EN 301 192, 10.2.2.
+    //! Representation of a DSM-CC UNM group_link_descriptor.
+    //! @see ETSI EN 301 192, 10.2.9.
     //! @ingroup descriptor
     //!
-    class TSDUCKDLL DSMCCUNMTypeDescriptor : public AbstractDescriptor
+    class TSDUCKDLL DSMCCUNMGroupLinkDescriptor : public AbstractDescriptor
     {
     public:
-        // DSMCCUNMTypeDescriptor public members:
-        UString type; //!< Type of the module or group.
+
+        //!
+        //! Position identifier in @a position field.
+        //!
+        enum {
+            FIRST        = 0x00, //!< First group in the chain.
+            INTERMEDIATE = 0x01, //!< Intermediate group in the chain.
+            LAST         = 0x02, //!< Last group in the list.
+            UNDEFINED    = 0xFF  //!< Position not defined.
+        };
+
+        //!
+        //! Enumeration description of position.
+        //!
+        static const Enumeration PositionEnum;
+
+        // DSMCCUNMModuleLinkDescriptor public members:
+        uint8_t position;   //!< Position of the module in the chain.
+        uint32_t group_id;  //!< Group ID of the next module in the list.
 
         //!
         //! Default constructor.
-        //! @param [in] type Type of the module or group.
         //!
-        DSMCCUNMTypeDescriptor(const UString& type = UString());
+        DSMCCUNMGroupLinkDescriptor();
 
         //!
         //! Constructor from a binary descriptor
         //! @param [in,out] duck TSDuck execution context.
         //! @param [in] bin A binary descriptor to deserialize.
         //!
-        DSMCCUNMTypeDescriptor(DuckContext& duck, const Descriptor& bin);
+        DSMCCUNMGroupLinkDescriptor(DuckContext& duck, const Descriptor& bin);
 
         // Inherited methods
         virtual void serialize(DuckContext&, Descriptor&) const override;

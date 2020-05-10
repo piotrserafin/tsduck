@@ -28,38 +28,37 @@
 //----------------------------------------------------------------------------
 //!
 //!  @file
-//!  Representation of a DSM-CC UNM type_descriptor.
+//!  Representation of a DSM-CC UNM est_download_time_descriptor.
 //!
 //----------------------------------------------------------------------------
 
 #pragma once
 #include "tsAbstractDescriptor.h"
-#include "tsUString.h"
 
 namespace ts {
     //!
-    //! Representation of a DSM-CC UNM type_descriptor.
-    //! @see ETSI EN 301 192, 10.2.2.
+    //! Representation of a DSM-CC UNM est_download_time_descriptor.
+    //! @see ETSI EN 301 192, 10.2.8.
     //! @ingroup descriptor
     //!
-    class TSDUCKDLL DSMCCUNMTypeDescriptor : public AbstractDescriptor
+    class TSDUCKDLL DSMCCUNMEstDownloadTimeDescriptor : public AbstractDescriptor
     {
     public:
-        // DSMCCUNMTypeDescriptor public members:
-        UString type; //!< Type of the module or group.
+        // DSMCCUNMEstDownloadTimeDescriptor public members:
+        uint32_t est_download_time; //!< Estimated download time of data in seconds.
 
         //!
         //! Default constructor.
-        //! @param [in] type Type of the module or group.
+        //! @param [in] time Estimated download time of data in seconds.
         //!
-        DSMCCUNMTypeDescriptor(const UString& type = UString());
+        DSMCCUNMEstDownloadTimeDescriptor(uint32_t time = 0xFFFFFFFF);
 
         //!
         //! Constructor from a binary descriptor
         //! @param [in,out] duck TSDuck execution context.
         //! @param [in] bin A binary descriptor to deserialize.
         //!
-        DSMCCUNMTypeDescriptor(DuckContext& duck, const Descriptor& bin);
+        DSMCCUNMEstDownloadTimeDescriptor(DuckContext& duck, const Descriptor& bin);
 
         // Inherited methods
         virtual void serialize(DuckContext&, Descriptor&) const override;

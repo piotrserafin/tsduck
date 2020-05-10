@@ -1195,8 +1195,19 @@
     </DII_location_descriptor>
 
     <!-- Must be in an DSM-CC UNM (table id 0x3B) -->
+    <DSMCC_UNM_compressed_module_descriptor
+      compression_method="uint8, required"
+      original_size="uint32, required"/>
+
     <DSMCC_UNM_CRC32_descriptor crc32="uint32, required"/>
+    <DSMCC_UNM_est_download_time_descriptor est_download_time="uint32, required"/>
+
+    <DSMCC_UNM_group_link_descriptor
+      position="first|intermediate|last|uint8, required"
+      group_id="uint32, required"/>
+
     <DSMCC_UNM_info_descriptor info="string, required"/>
+    <DSMCC_UNM_location_descriptor location="uint8, required"/>
 
     <DSMCC_UNM_module_link_descriptor
       position="first|intermediate|last|uint8, required"

@@ -27,7 +27,7 @@
 //
 //----------------------------------------------------------------------------
 //
-//  Representation of a DSM-CC UNM name_descriptor
+//  Representation of a DSM-CC UNM name_descriptor.
 //
 //----------------------------------------------------------------------------
 
@@ -58,7 +58,6 @@ ts::DSMCCUNMNameDescriptor::DSMCCUNMNameDescriptor(const UString& name_) :
     _is_valid = true;
 }
 
-
 //----------------------------------------------------------------------------
 // Constructor from a binary descriptor
 //----------------------------------------------------------------------------
@@ -70,7 +69,6 @@ ts::DSMCCUNMNameDescriptor::DSMCCUNMNameDescriptor(DuckContext& duck, const Desc
     deserialize(duck, desc);
 }
 
-
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
@@ -81,7 +79,6 @@ void ts::DSMCCUNMNameDescriptor::serialize(DuckContext& duck, Descriptor& desc) 
     bbp->append(duck.encoded(name));
     serializeEnd(desc, bbp);
 }
-
 
 //----------------------------------------------------------------------------
 // Deserialization
@@ -99,7 +96,6 @@ void ts::DSMCCUNMNameDescriptor::deserialize(DuckContext& duck, const Descriptor
     }
 }
 
-
 //----------------------------------------------------------------------------
 // Static method to display a descriptor.
 //----------------------------------------------------------------------------
@@ -113,7 +109,6 @@ void ts::DSMCCUNMNameDescriptor::DisplayDescriptor(TablesDisplay& display, DID d
     strm << margin << "Name: \"" << duck.decoded(payload, size) << "\"" << std::endl;
 }
 
-
 //----------------------------------------------------------------------------
 // XML serialization
 //----------------------------------------------------------------------------
@@ -122,7 +117,6 @@ void ts::DSMCCUNMNameDescriptor::buildXML(DuckContext& duck, xml::Element* root)
 {
     root->setAttribute(u"name", name);
 }
-
 
 //----------------------------------------------------------------------------
 // XML deserialization
