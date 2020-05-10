@@ -502,17 +502,16 @@ Bits = 8
 0xB3 = Mesh Logon initialize (ETSI EN 301 790)
 0xB5 = Implementation type (ETSI EN 301 790)
 0xB6 = LL FEC identifier (ETSI EN 301 790)
-0xFF = Forbidden Descriptor Id 0xFF
-# Valid in a DSM-CC UNM (0x3B, DSM-CC User-to-Network Messages, ETSI EN 301 192)
-0x3BFFFFFFFF01 = DSM-CC UNM Type
-0x3BFFFFFFFF02 = DSM-CC UNM Name
-0x3BFFFFFFFF03 = DSM-CC UNM Info
-0x3BFFFFFFFF04 = DSM-CC UNM Module Link
-0x3BFFFFFFFF05 = DSM-CC UNM CRC32
-0x3BFFFFFFFF06 = DSM-CC UNM Location
-0x3BFFFFFFFF07 = DSM-CC UNM Estimated Download Time 
-0x3BFFFFFFFF08 = DSM-CC UNM Group Link
-0x3BFFFFFFFF09 = DSM-CC UNM Compressed Module
+# Valid in a DSM-CC UNM (0x3B, DSM-CC User-to-Network Message, ETSI EN 301 192)
+0x3B_FFFFFFFF_01 = DSM-CC UNM Type
+0x3B_FFFFFFFF_02 = DSM-CC UNM Name
+0x3B_FFFFFFFF_03 = DSM-CC UNM Info
+0x3B_FFFFFFFF_04 = DSM-CC UNM Module Link
+0x3B_FFFFFFFF_05 = DSM-CC UNM CRC32
+0x3B_FFFFFFFF_06 = DSM-CC UNM Location
+0x3B_FFFFFFFF_07 = DSM-CC UNM Estimated Download Time 
+0x3B_FFFFFFFF_08 = DSM-CC UNM Group Link
+0x3B_FFFFFFFF_09 = DSM-CC UNM Compressed Module
 # Valid in a UNT (0x4B, Update Notification Table, ETSI TS 102 006):
 0x4B_FFFFFFFF_01 = UNT Scheduling
 0x4B_FFFFFFFF_02 = UNT Update
