@@ -44,7 +44,7 @@ TSDUCK_SOURCE;
 #define MY_CLASS ts::DSMCCUNMLocationDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_LOCATION
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -71,6 +71,17 @@ ts::DSMCCUNMLocationDescriptor::DSMCCUNMLocationDescriptor(DuckContext& duck, co
     deserialize(duck, desc);
 }
 
+
+//----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUNMLocationDescriptor::clearContent()
+{
+    location = 0xFF;
+}
+
+
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
@@ -92,7 +103,7 @@ void ts::DSMCCUNMLocationDescriptor::deserialize(DuckContext& duck, const Descri
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size == 1;
+    _is_valid = desc.isValid() && desc.tag() == tag() && size == 1;
 
     if (_is_valid) {
         location = data[0];
@@ -133,9 +144,7 @@ void ts::DSMCCUNMLocationDescriptor::buildXML(DuckContext& duck, xml::Element* r
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMLocationDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMLocationDescriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getIntAttribute(location, u"location", 0xFF);
+    return element->getIntAttribute(location, u"location", 0xFF);
 }

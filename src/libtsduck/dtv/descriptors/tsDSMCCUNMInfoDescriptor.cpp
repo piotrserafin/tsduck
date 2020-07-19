@@ -44,7 +44,7 @@ TSDUCK_SOURCE;
 #define MY_CLASS ts::DSMCCUNMInfoDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_INFO
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -64,6 +64,17 @@ ts::DSMCCUNMInfoDescriptor::DSMCCUNMInfoDescriptor(DuckContext& duck, const Desc
     DSMCCUNMInfoDescriptor()
 {
     deserialize(duck, desc);
+}
+
+
+//----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUNMInfoDescriptor::clearContent()
+{
+    ISO_639_language_code.clear();
+    info.clear();
 }
 
 
@@ -92,7 +103,7 @@ void ts::DSMCCUNMInfoDescriptor::deserialize(DuckContext& duck, const Descriptor
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size >= 5;
+    _is_valid = desc.isValid() && desc.tag() == tag() && size >= 5;
 
     if (_is_valid) {
         ISO_639_language_code = DeserializeLanguageCode(data);
@@ -142,10 +153,8 @@ void ts::DSMCCUNMInfoDescriptor::buildXML(DuckContext& duck, xml::Element* root)
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMInfoDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMInfoDescriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getAttribute(ISO_639_language_code, u"ISO_639_language_code", true, u"", 3, 3) &&
-        element->getTextChild(info, u"info");
+    return element->getAttribute(ISO_639_language_code, u"ISO_639_language_code", true, u"", 3, 3) &&
+           element->getTextChild(info, u"info");
 }

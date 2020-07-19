@@ -41,7 +41,7 @@ namespace ts {
     //! @see ETSI EN 301 192, 10.2.8.
     //! @ingroup descriptor
     //!
-    class TSDUCKDLL DSMCCUNMEstDownloadTimeDescriptor : public AbstractDescriptor
+    class TSDUCKDLL DSMCCUNMEstimatedDownloadTimeDescriptor : public AbstractDescriptor
     {
     public:
         // DSMCCUNMEstDownloadTimeDescriptor public members:
@@ -51,23 +51,24 @@ namespace ts {
         //! Default constructor.
         //! @param [in] time Estimated download time of data in seconds.
         //!
-        DSMCCUNMEstDownloadTimeDescriptor(uint32_t time = 0xFFFFFFFF);
+        DSMCCUNMEstimatedDownloadTimeDescriptor(uint32_t time = 0xFFFFFFFF);
 
         //!
         //! Constructor from a binary descriptor
         //! @param [in,out] duck TSDuck execution context.
         //! @param [in] bin A binary descriptor to deserialize.
         //!
-        DSMCCUNMEstDownloadTimeDescriptor(DuckContext& duck, const Descriptor& bin);
+        DSMCCUNMEstimatedDownloadTimeDescriptor(DuckContext& duck, const Descriptor& bin);
 
         // Inherited methods
         virtual void serialize(DuckContext&, Descriptor&) const override;
         virtual void deserialize(DuckContext&, const Descriptor&) override;
-        virtual void fromXML(DuckContext&, const xml::Element*) override;
         DeclareDisplayDescriptor();
 
     protected:
         // Inherited methods
+        virtual void clearContent() override;
         virtual void buildXML(DuckContext&, xml::Element*) const override;
+        virtual bool analyzeXML(DuckContext& duck, const xml::Element* element) override;
     };
 }

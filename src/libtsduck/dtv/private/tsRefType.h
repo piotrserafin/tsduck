@@ -97,7 +97,7 @@
     REF_TYPE(DIILocationDescriptor);
     REF_TYPE(DSMCCUNMCompressedModuleDescriptor);
     REF_TYPE(DSMCCUNMCRC32Descriptor);
-    REF_TYPE(DSMCCUNMEstDownloadTimeDescriptor);
+    REF_TYPE(DSMCCUNMEstimatedDownloadTimeDescriptor);
     REF_TYPE(DSMCCUNMGroupLinkDescriptor);
     REF_TYPE(DSMCCUNMInfoDescriptor);
     REF_TYPE(DSMCCUNMLocationDescriptor);

@@ -44,7 +44,7 @@ TSDUCK_SOURCE;
 #define MY_CLASS ts::DSMCCUNMCRC32Descriptor
 #define MY_DID ts::DID_DSMCC_UNM_CRC32
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -73,6 +73,15 @@ ts::DSMCCUNMCRC32Descriptor::DSMCCUNMCRC32Descriptor(DuckContext& duck, const De
 
 
 //----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+void ts::DSMCCUNMCRC32Descriptor::clearContent() 
+{
+    crc32 = 0xFFFFFFFF;
+}
+
+
+//----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
 
@@ -90,7 +99,7 @@ void ts::DSMCCUNMCRC32Descriptor::serialize(DuckContext& duck, Descriptor& desc)
 
 void ts::DSMCCUNMCRC32Descriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
-    _is_valid = desc.isValid() && desc.tag() == _tag && desc.payloadSize() == 4;
+    _is_valid = desc.isValid() && desc.tag() == tag() && desc.payloadSize() == 4;
 
     if (_is_valid) {
         crc32 = *desc.payload();
@@ -126,9 +135,7 @@ void ts::DSMCCUNMCRC32Descriptor::buildXML(DuckContext& duck, xml::Element* root
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMCRC32Descriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMCRC32Descriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getIntAttribute(crc32, u"crc32", 0xFFFFFFFF);
+    return element->getIntAttribute(crc32, u"crc32", 0xFFFFFFFF);
 }

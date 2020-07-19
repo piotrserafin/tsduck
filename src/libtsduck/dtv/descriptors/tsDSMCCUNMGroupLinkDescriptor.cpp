@@ -44,7 +44,7 @@ TSDUCK_SOURCE;
 #define MY_CLASS ts::DSMCCUNMGroupLinkDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_GROUP_LINK
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -73,6 +73,18 @@ ts::DSMCCUNMGroupLinkDescriptor::DSMCCUNMGroupLinkDescriptor(DuckContext& duck, 
     deserialize(duck, desc);
 }
 
+
+//----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUNMGroupLinkDescriptor::clearContent()
+{
+    position = 0xFF;
+    group_id = 0xFFFFFFFF;
+}
+
+
 //----------------------------------------------------------------------------
 // Enumeration description of position.
 //----------------------------------------------------------------------------
@@ -83,6 +95,7 @@ const ts::Enumeration ts::DSMCCUNMGroupLinkDescriptor::PositionEnum({
     {u"last",       ts::DSMCCUNMGroupLinkDescriptor::LAST},
     {u"undefined",  ts::DSMCCUNMGroupLinkDescriptor::UNDEFINED}
 });
+
 
 //----------------------------------------------------------------------------
 // Serialization
@@ -96,6 +109,7 @@ void ts::DSMCCUNMGroupLinkDescriptor::serialize(DuckContext& duck, Descriptor& d
     serializeEnd(desc, bbp);
 }
 
+
 //----------------------------------------------------------------------------
 // Deserialization
 //----------------------------------------------------------------------------
@@ -105,7 +119,7 @@ void ts::DSMCCUNMGroupLinkDescriptor::deserialize(DuckContext& duck, const Descr
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size == 5;
+    _is_valid = desc.isValid() && desc.tag() == tag() && size == 5;
 
     if (_is_valid) {
         position = data[0];
@@ -141,6 +155,7 @@ void ts::DSMCCUNMGroupLinkDescriptor::DisplayDescriptor(TablesDisplay& display, 
     display.displayExtraData(payload, size, indent);
 }
 
+
 //----------------------------------------------------------------------------
 // XML serialization
 //----------------------------------------------------------------------------
@@ -151,14 +166,13 @@ void ts::DSMCCUNMGroupLinkDescriptor::buildXML(DuckContext& duck, xml::Element* 
     root->setIntAttribute(u"group_id", group_id);
 }
 
+
 //----------------------------------------------------------------------------
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMGroupLinkDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMGroupLinkDescriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getIntEnumAttribute(position, PositionEnum, u"position", 0xFF) &&
-        element->getIntAttribute(group_id, u"group_id", 0xFFFFFFFF);
+    return element->getIntEnumAttribute(position, PositionEnum, u"position", 0xFF) &&
+           element->getIntAttribute(group_id, u"group_id", 0xFFFFFFFF);
 }

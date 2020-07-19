@@ -38,7 +38,7 @@ TSDUCK_SOURCE;
 #define MY_XML_NAME u"DSMCC_user_to_network_messages_table"
 #define MY_CLASS ts::DSMCCUserToNetworkMessageTable
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_MPEG
+#define MY_STD ts::Standards::MPEG
 
 TS_REGISTER_TABLE(MY_CLASS, {MY_TID}, MY_STD, MY_XML_NAME, MY_CLASS::DisplaySection);
 
@@ -49,6 +49,15 @@ TS_REGISTER_TABLE(MY_CLASS, {MY_TID}, MY_STD, MY_XML_NAME, MY_CLASS::DisplaySect
 ts::DSMCCUserToNetworkMessageTable::DSMCCUserToNetworkMessageTable(uint8_t vers, bool cur, uint16_t tid_ext) : AbstractTable(MY_TID, MY_XML_NAME, MY_STD),
                                                                                                                  table_id_extension(tid_ext)
 {
+}
+
+//----------------------------------------------------------------------------
+// Deserialization
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUserToNetworkMessageTable::clearContent()
+{
+    table_id_extension = 0xFFFF;
 }
 
 //----------------------------------------------------------------------------
@@ -219,6 +228,7 @@ void ts::DSMCCUserToNetworkMessageTable::buildXML(DuckContext &duck, xml::Elemen
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUserToNetworkMessageTable::fromXML(DuckContext &duck, const xml::Element *element)
+bool ts::DSMCCUserToNetworkMessageTable::analyzeXML(DuckContext &duck, const xml::Element *element)
 {
+    return element->getIntAttribute<uint16_t>(table_id_extension, u"table_id_extension", false, 0xFFFF);
 }

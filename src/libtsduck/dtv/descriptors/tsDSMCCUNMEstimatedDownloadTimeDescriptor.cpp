@@ -40,11 +40,11 @@
 #include "tsxmlElement.h"
 TSDUCK_SOURCE;
 
-#define MY_XML_NAME u"DSMCC_UNM_est_download_time_descriptor"
-#define MY_CLASS ts::DSMCCUNMEstDownloadTimeDescriptor
+#define MY_XML_NAME u"DSMCC_UNM_estimated_download_time_descriptor"
+#define MY_CLASS ts::DSMCCUNMEstimatedDownloadTimeDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_EST_DOWNLOAD_TIME
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -52,7 +52,7 @@ TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML
 // Default constructor:
 //----------------------------------------------------------------------------
 
-ts::DSMCCUNMEstDownloadTimeDescriptor::DSMCCUNMEstDownloadTimeDescriptor(uint32_t time) :
+ts::DSMCCUNMEstimatedDownloadTimeDescriptor::DSMCCUNMEstimatedDownloadTimeDescriptor(uint32_t time) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
     est_download_time(time)
 {
@@ -64,7 +64,7 @@ ts::DSMCCUNMEstDownloadTimeDescriptor::DSMCCUNMEstDownloadTimeDescriptor(uint32_
 // Constructor from a binary descriptor
 //----------------------------------------------------------------------------
 
-ts::DSMCCUNMEstDownloadTimeDescriptor::DSMCCUNMEstDownloadTimeDescriptor(DuckContext& duck, const Descriptor& desc) :
+ts::DSMCCUNMEstimatedDownloadTimeDescriptor::DSMCCUNMEstimatedDownloadTimeDescriptor(DuckContext& duck, const Descriptor& desc) :
     AbstractDescriptor(MY_DID, MY_XML_NAME, MY_STD, 0),
     est_download_time(0xFFFFFFFF)
 {
@@ -73,10 +73,20 @@ ts::DSMCCUNMEstDownloadTimeDescriptor::DSMCCUNMEstDownloadTimeDescriptor(DuckCon
 
 
 //----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUNMEstimatedDownloadTimeDescriptor::clearContent()
+{
+    est_download_time = 0xFFFFFFFF;
+}
+
+
+//----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMEstDownloadTimeDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
+void ts::DSMCCUNMEstimatedDownloadTimeDescriptor::serialize(DuckContext& duck, Descriptor& desc) const
 {
     ByteBlockPtr bbp(serializeStart());
     bbp->appendUInt32(est_download_time);
@@ -88,9 +98,9 @@ void ts::DSMCCUNMEstDownloadTimeDescriptor::serialize(DuckContext& duck, Descrip
 // Deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMEstDownloadTimeDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
+void ts::DSMCCUNMEstimatedDownloadTimeDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
-    _is_valid = desc.isValid() && desc.tag() == _tag && desc.payloadSize() == 4;
+    _is_valid = desc.isValid() && desc.tag() == tag() && desc.payloadSize() == 4;
 
     if (_is_valid) {
         est_download_time = *desc.payload();
@@ -102,7 +112,7 @@ void ts::DSMCCUNMEstDownloadTimeDescriptor::deserialize(DuckContext& duck, const
 // Static method to display a descriptor.
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMEstDownloadTimeDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
+void ts::DSMCCUNMEstimatedDownloadTimeDescriptor::DisplayDescriptor(TablesDisplay& display, DID did, const uint8_t* payload, size_t size, int indent, TID tid, PDS pds)
 {
     DuckContext& duck(display.duck());
     std::ostream& strm(duck.out());
@@ -116,7 +126,7 @@ void ts::DSMCCUNMEstDownloadTimeDescriptor::DisplayDescriptor(TablesDisplay& dis
 // XML serialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMEstDownloadTimeDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
+void ts::DSMCCUNMEstimatedDownloadTimeDescriptor::buildXML(DuckContext& duck, xml::Element* root) const
 {
     root->setIntAttribute(u"est_download_time", est_download_time);
 }
@@ -126,9 +136,7 @@ void ts::DSMCCUNMEstDownloadTimeDescriptor::buildXML(DuckContext& duck, xml::Ele
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMEstDownloadTimeDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMEstimatedDownloadTimeDescriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getIntAttribute(est_download_time, u"est_download_time", 0xFFFFFFFF);
+    return element->getIntAttribute(est_download_time, u"est_download_time", 0xFFFFFFFF);
 }

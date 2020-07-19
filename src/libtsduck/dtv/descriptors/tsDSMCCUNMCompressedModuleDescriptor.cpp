@@ -44,7 +44,7 @@ TSDUCK_SOURCE;
 #define MY_CLASS ts::DSMCCUNMCompressedModuleDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_COMPRESSED_MODULE
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -73,6 +73,18 @@ ts::DSMCCUNMCompressedModuleDescriptor::DSMCCUNMCompressedModuleDescriptor(DuckC
     deserialize(duck, desc);
 }
 
+
+//----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUNMCompressedModuleDescriptor::clearContent()
+{
+    compression_method = 0x00;
+    original_size = 0x00000000;
+}
+
+
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
@@ -85,6 +97,7 @@ void ts::DSMCCUNMCompressedModuleDescriptor::serialize(DuckContext& duck, Descri
     serializeEnd(desc, bbp);
 }
 
+
 //----------------------------------------------------------------------------
 // Deserialization
 //----------------------------------------------------------------------------
@@ -94,7 +107,7 @@ void ts::DSMCCUNMCompressedModuleDescriptor::deserialize(DuckContext& duck, cons
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size == 5;
+    _is_valid = desc.isValid() && desc.tag() == tag() && size == 5;
 
     if (_is_valid) {
         compression_method = data[0];
@@ -130,6 +143,7 @@ void ts::DSMCCUNMCompressedModuleDescriptor::DisplayDescriptor(TablesDisplay& di
     display.displayExtraData(payload, size, indent);
 }
 
+
 //----------------------------------------------------------------------------
 // XML serialization
 //----------------------------------------------------------------------------
@@ -140,14 +154,13 @@ void ts::DSMCCUNMCompressedModuleDescriptor::buildXML(DuckContext& duck, xml::El
     root->setIntAttribute(u"original_size", original_size);
 }
 
+
 //----------------------------------------------------------------------------
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMCompressedModuleDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMCompressedModuleDescriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getIntAttribute(compression_method, u"compression_method", 0x00) &&
-        element->getIntAttribute(original_size, u"original_size", 0x00000000);
+    return element->getIntAttribute(compression_method, u"compression_method", 0x00) &&
+           element->getIntAttribute(original_size, u"original_size", 0x00000000);
 }

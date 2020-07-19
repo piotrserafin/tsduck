@@ -44,7 +44,7 @@ TSDUCK_SOURCE;
 #define MY_CLASS ts::DSMCCUNMNameDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_NAME
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -59,6 +59,7 @@ ts::DSMCCUNMNameDescriptor::DSMCCUNMNameDescriptor(const UString& name_) :
     _is_valid = true;
 }
 
+
 //----------------------------------------------------------------------------
 // Constructor from a binary descriptor
 //----------------------------------------------------------------------------
@@ -69,6 +70,17 @@ ts::DSMCCUNMNameDescriptor::DSMCCUNMNameDescriptor(DuckContext& duck, const Desc
 {
     deserialize(duck, desc);
 }
+
+
+//----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUNMNameDescriptor::clearContent()
+{
+    name.clear();
+}
+
 
 //----------------------------------------------------------------------------
 // Serialization
@@ -81,13 +93,14 @@ void ts::DSMCCUNMNameDescriptor::serialize(DuckContext& duck, Descriptor& desc) 
     serializeEnd(desc, bbp);
 }
 
+
 //----------------------------------------------------------------------------
 // Deserialization
 //----------------------------------------------------------------------------
 
 void ts::DSMCCUNMNameDescriptor::deserialize(DuckContext& duck, const Descriptor& desc)
 {
-    _is_valid = desc.isValid() && desc.tag() == _tag;
+    _is_valid = desc.isValid() && desc.tag() == tag();
 
     if (_is_valid) {
         duck.decode(name, desc.payload(), desc.payloadSize());
@@ -96,6 +109,7 @@ void ts::DSMCCUNMNameDescriptor::deserialize(DuckContext& duck, const Descriptor
         name.clear();
     }
 }
+
 
 //----------------------------------------------------------------------------
 // Static method to display a descriptor.
@@ -110,6 +124,7 @@ void ts::DSMCCUNMNameDescriptor::DisplayDescriptor(TablesDisplay& display, DID d
     strm << margin << "Name: \"" << duck.decoded(payload, size) << "\"" << std::endl;
 }
 
+
 //----------------------------------------------------------------------------
 // XML serialization
 //----------------------------------------------------------------------------
@@ -119,13 +134,12 @@ void ts::DSMCCUNMNameDescriptor::buildXML(DuckContext& duck, xml::Element* root)
     root->setAttribute(u"name", name);
 }
 
+
 //----------------------------------------------------------------------------
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMNameDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMNameDescriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getAttribute(name, u"name", true, u"", 0, MAX_DESCRIPTOR_SIZE - 2);
+    return element->getAttribute(name, u"name", true, u"", 0, MAX_DESCRIPTOR_SIZE - 2);
 }

@@ -1200,7 +1200,7 @@
       original_size="uint32, required"/>
 
     <DSMCC_UNM_CRC32_descriptor crc32="uint32, required"/>
-    <DSMCC_UNM_est_download_time_descriptor est_download_time="uint32, required"/>
+    <DSMCC_UNM_estimated_download_time_descriptor est_download_time="uint32, required"/>
 
     <DSMCC_UNM_group_link_descriptor
       position="first|intermediate|last|uint8, required"

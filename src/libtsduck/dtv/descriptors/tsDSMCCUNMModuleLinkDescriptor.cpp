@@ -44,7 +44,7 @@ TSDUCK_SOURCE;
 #define MY_CLASS ts::DSMCCUNMModuleLinkDescriptor
 #define MY_DID ts::DID_DSMCC_UNM_MODULE_LINK
 #define MY_TID ts::TID_DSMCC_UNM
-#define MY_STD ts::STD_DVB
+#define MY_STD ts::Standards::DVB
 
 TS_REGISTER_DESCRIPTOR(MY_CLASS, ts::EDID::TableSpecific(MY_DID, MY_TID), MY_XML_NAME, MY_CLASS::DisplayDescriptor);
 
@@ -60,6 +60,7 @@ ts::DSMCCUNMModuleLinkDescriptor::DSMCCUNMModuleLinkDescriptor() :
     _is_valid = true;
 }
 
+
 //----------------------------------------------------------------------------
 // Constructor from a binary descriptor
 //----------------------------------------------------------------------------
@@ -72,6 +73,18 @@ ts::DSMCCUNMModuleLinkDescriptor::DSMCCUNMModuleLinkDescriptor(DuckContext& duck
     deserialize(duck, desc);
 }
 
+
+//----------------------------------------------------------------------------
+// Clear
+//----------------------------------------------------------------------------
+
+void ts::DSMCCUNMModuleLinkDescriptor::clearContent()
+{
+    position = 0xFF;
+    module_id = 0xFFFF;
+}
+
+
 //----------------------------------------------------------------------------
 // Enumeration description of position.
 //----------------------------------------------------------------------------
@@ -82,6 +95,7 @@ const ts::Enumeration ts::DSMCCUNMModuleLinkDescriptor::PositionEnum({
     {u"last",       ts::DSMCCUNMModuleLinkDescriptor::LAST},
     {u"undefined",  ts::DSMCCUNMModuleLinkDescriptor::UNDEFINED}
 });
+
 
 //----------------------------------------------------------------------------
 // Serialization
@@ -95,6 +109,7 @@ void ts::DSMCCUNMModuleLinkDescriptor::serialize(DuckContext& duck, Descriptor& 
     serializeEnd(desc, bbp);
 }
 
+
 //----------------------------------------------------------------------------
 // Deserialization
 //----------------------------------------------------------------------------
@@ -104,7 +119,7 @@ void ts::DSMCCUNMModuleLinkDescriptor::deserialize(DuckContext& duck, const Desc
     const uint8_t* data = desc.payload();
     size_t size = desc.payloadSize();
 
-    _is_valid = desc.isValid() && desc.tag() == _tag && size == 3;
+    _is_valid = desc.isValid() && desc.tag() == tag() && size == 3;
 
     if (_is_valid) {
         position = data[0];
@@ -116,6 +131,7 @@ void ts::DSMCCUNMModuleLinkDescriptor::deserialize(DuckContext& duck, const Desc
         module_id = 0xFFFF;
     }
 }
+
 
 //----------------------------------------------------------------------------
 // Static method to display a descriptor.
@@ -139,6 +155,7 @@ void ts::DSMCCUNMModuleLinkDescriptor::DisplayDescriptor(TablesDisplay& display,
     display.displayExtraData(payload, size, indent);
 }
 
+
 //----------------------------------------------------------------------------
 // XML serialization
 //----------------------------------------------------------------------------
@@ -149,14 +166,13 @@ void ts::DSMCCUNMModuleLinkDescriptor::buildXML(DuckContext& duck, xml::Element*
     root->setIntAttribute(u"module_id", module_id);
 }
 
+
 //----------------------------------------------------------------------------
 // XML deserialization
 //----------------------------------------------------------------------------
 
-void ts::DSMCCUNMModuleLinkDescriptor::fromXML(DuckContext& duck, const xml::Element* element)
+bool ts::DSMCCUNMModuleLinkDescriptor::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    _is_valid =
-        checkXMLName(element) &&
-        element->getIntEnumAttribute(position, PositionEnum, u"position", 0xFF) &&
-        element->getIntAttribute(module_id, u"module_id", 0xFFFF);
+    return element->getIntEnumAttribute(position, PositionEnum, u"position", 0xFF) &&
+           element->getIntAttribute(module_id, u"module_id", 0xFFFF);
 }
