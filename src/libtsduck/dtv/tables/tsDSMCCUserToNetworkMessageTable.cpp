@@ -46,8 +46,9 @@ TS_REGISTER_TABLE(MY_CLASS, {MY_TID}, MY_STD, MY_XML_NAME, MY_CLASS::DisplaySect
 // Constructors and assignment.
 //----------------------------------------------------------------------------
 
-ts::DSMCCUserToNetworkMessageTable::DSMCCUserToNetworkMessageTable(uint8_t vers, bool cur, uint16_t tid_ext) : AbstractTable(MY_TID, MY_XML_NAME, MY_STD),
-                                                                                                                 table_id_extension(tid_ext)
+ts::DSMCCUserToNetworkMessageTable::DSMCCUserToNetworkMessageTable(uint8_t vers, bool cur, uint16_t tid_ext) : 
+    AbstractTable(MY_TID, MY_XML_NAME, MY_STD),
+    table_id_extension(tid_ext)
 {
 }
 

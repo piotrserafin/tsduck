@@ -1213,6 +1213,9 @@
       position="first|intermediate|last|uint8, required"
       module_id="uint16, required"/>
 
+    <DSMCC_UNM_SSU_module_type_descriptor
+      module_type="executable|memory_mapped_code|data|uint8, required"/>
+
     <DSMCC_UNM_name_descriptor name="string, required"/>
     <DSMCC_UNM_type_descriptor type="string, required"/>
 

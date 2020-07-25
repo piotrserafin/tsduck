@@ -103,6 +103,7 @@
     REF_TYPE(DSMCCUNMLocationDescriptor);
     REF_TYPE(DSMCCUNMModuleLinkDescriptor);
     REF_TYPE(DSMCCUNMNameDescriptor);
+    REF_TYPE(DSMCCUNMSSUModuleTypeDescriptor);
     REF_TYPE(DSMCCUNMTypeDescriptor);
     REF_TYPE(DSNGDescriptor);
     REF_TYPE(DTGGuidanceDescriptor);

@@ -137,6 +137,7 @@
 #include "tsDSMCCUNMLocationDescriptor.h"
 #include "tsDSMCCUNMModuleLinkDescriptor.h"
 #include "tsDSMCCUNMNameDescriptor.h"
+#include "tsDSMCCUNMSSUModuleTypeDescriptor.h"
 #include "tsDSMCCUNMTypeDescriptor.h"
 #include "tsDSNGDescriptor.h"
 #include "tsDTGGuidanceDescriptor.h"

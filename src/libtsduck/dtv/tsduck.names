@@ -512,6 +512,7 @@ Bits = 8
 0x3B_FFFFFFFF_07 = DSM-CC UNM Estimated Download Time 
 0x3B_FFFFFFFF_08 = DSM-CC UNM Group Link
 0x3B_FFFFFFFF_09 = DSM-CC UNM Compressed Module
+0x3B_FFFFFFFF_0A = DSM-CC UNM SSU Module Type
 # Valid in a UNT (0x4B, Update Notification Table, ETSI TS 102 006):
 0x4B_FFFFFFFF_01 = UNT Scheduling
 0x4B_FFFFFFFF_02 = UNT Update

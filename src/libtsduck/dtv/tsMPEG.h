@@ -1148,7 +1148,7 @@ namespace ts {
         DID_DSMCC_UNM_EST_DOWNLOAD_TIME = 0x07, //!< DID for DSM-CC UNM DSI/DII est_download_time_descriptor.
         DID_DSMCC_UNM_GROUP_LINK        = 0x08, //!< DID for DSM-CC UNM DSI group_link_descriptor.
         DID_DSMCC_UNM_COMPRESSED_MODULE = 0x09, //!< DID for DSM-CC UNM DII compressed_module_descriptor.
-        DID_DSMCC_UNM_CACHING_PRIORITY  = 0x71, //!< DID for DII caching_priority_descriptor.
+        DID_DSMCC_UNM_SSU_MODULE_TYPE   = 0x0A, //!< DID for DSM-CC UNM DII SSU_module_type.
 
         // Valid in an INT (IP/MAC Notification Table, ETSI EN 301 192):
 
