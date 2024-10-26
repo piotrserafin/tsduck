@@ -508,7 +508,6 @@ Bits = 8
 0x3B_FFFFFFFF_0B = DSM-CC U-N Message Subgroup Association
 0x3B_FFFFFFFF_70 = DSM-CC U-N Message Label
 0x3B_FFFFFFFF_71 = DSM-CC U-N Message Caching Priority
-0x3B_FFFFFFFF_72 = DSM-CC U-N Message Content Type
 # Valid in a UNT (0x4B, Update Notification Table, ETSI TS 102 006):
 0x4B_FFFFFFFF_01 = UNT Scheduling
 0x4B_FFFFFFFF_02 = UNT Update
