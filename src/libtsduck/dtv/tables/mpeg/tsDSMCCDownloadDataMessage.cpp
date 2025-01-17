@@ -7,6 +7,7 @@
 //----------------------------------------------------------------------------
 
 #include "tsDSMCCDownloadDataMessage.h"
+#include "tsAbstractDSMCCTable.h"
 #include "tsBinaryTable.h"
 #include "tsTablesDisplay.h"
 #include "tsPSIRepository.h"
@@ -26,8 +27,8 @@ TS_REGISTER_TABLE(MY_CLASS, {MY_TID}, MY_STD, MY_XML_NAME, MY_CLASS::DisplaySect
 // Constructors and assignment.
 //----------------------------------------------------------------------------
 
-ts::DSMCCDownloadDataMessage::DSMCCDownloadDataMessage(uint8_t vers, bool cur) :
-    AbstractLongTable(MY_TID, MY_XML_NAME, MY_STD, vers, cur)
+ts::DSMCCDownloadDataMessage::DSMCCDownloadDataMessage(uint8_t vers, bool cur, uint16_t tid_ext) :
+    AbstractDSMCCTable(MY_TID, MY_XML_NAME, MY_STD, tid_ext, vers, cur)
 {
 }
 
@@ -37,22 +38,10 @@ ts::DSMCCDownloadDataMessage::DSMCCDownloadDataMessage(DuckContext& duck, const 
     deserialize(duck, table);
 }
 
-//----------------------------------------------------------------------------
-// DSM-CC Message Header
-//----------------------------------------------------------------------------
-
-void ts::DSMCCDownloadDataMessage::DownloadDataHeader::clear()
-{
-    protocol_discriminator = DSMCC_PROTOCOL_DISCRIMINATOR;
-    dsmcc_type = DSMCC_TYPE_DOWNLOAD_MESSAGE;
-    message_id = 0;
-    download_id = 0;
-}
-
 void ts::DSMCCDownloadDataMessage::clearContent()
 {
-    table_id_ext = 0;
-    header.clear();
+    _tid_ext = 0;
+    _header.clear();
     module_id = 0;
     module_version = 0;
     block_data.clear();
@@ -61,22 +50,6 @@ void ts::DSMCCDownloadDataMessage::clearContent()
 //----------------------------------------------------------------------------
 // Inherited public methods
 //----------------------------------------------------------------------------
-
-bool ts::DSMCCDownloadDataMessage::isPrivate() const
-{
-    return false;  // MPEG-defined
-}
-
-size_t ts::DSMCCDownloadDataMessage::maxPayloadSize() const
-{
-    // Although declared as a "non-private section" in the MPEG sense, the
-    // DSM-CC section can use up to 4096 bytes according to
-    // ETSI TS 102 809 V1.3.1 (2017-06), Table B.2.
-    //
-    // The maximum section length is 4096 bytes for all types of sections used in object carousel.
-    // The section overhead is 12 bytes, leaving a maxium 4084 of payload per section.
-    return MAX_PRIVATE_LONG_SECTION_PAYLOAD_SIZE;
-}
 
 uint16_t ts::DSMCCDownloadDataMessage::tableIdExtension() const
 {
@@ -89,11 +62,7 @@ uint16_t ts::DSMCCDownloadDataMessage::tableIdExtension() const
 
 void ts::DSMCCDownloadDataMessage::deserializePayload(PSIBuffer& buf, const Section& section)
 {
-    table_id_ext = section.tableIdExtension();
-    header.protocol_discriminator = buf.getUInt8();
-    header.dsmcc_type = buf.getUInt8();
-    header.message_id = buf.getUInt16();
-    header.download_id = buf.getUInt32();
+    AbstractDSMCCTable::deserializePayload(buf, section);
 
     buf.skipBytes(1);  // reserved
 
@@ -118,12 +87,10 @@ void ts::DSMCCDownloadDataMessage::deserializePayload(PSIBuffer& buf, const Sect
 //----------------------------------------------------------------------------
 // Serialization
 //----------------------------------------------------------------------------
+
 void ts::DSMCCDownloadDataMessage::serializePayload(BinaryTable& table, PSIBuffer& buf) const
 {
-    buf.putUInt8(header.protocol_discriminator);
-    buf.putUInt8(header.dsmcc_type);
-    buf.putUInt16(header.message_id);
-    buf.putUInt32(header.download_id);
+    AbstractDSMCCTable::serializePayload(table, buf);
 
     buf.putUInt8(0xFF);  // reserved
     buf.putUInt8(0x00);  // adaptation_length
@@ -157,7 +124,7 @@ void ts::DSMCCDownloadDataMessage::DisplaySection(TablesDisplay& disp, const ts:
 
     disp << margin << UString::Format(u"Table extension id: %n", tidext) << std::endl;
 
-    if (buf.canReadBytes(DOWNLOAD_DATA_HEADER_SIZE)) {
+    if (buf.canReadBytes(DSMCC_MESSAGE_HEADER_SIZE)) {
         const uint8_t  protocol_discriminator = buf.getUInt8();
         const uint8_t  dsmcc_type = buf.getUInt8();
         const uint16_t message_id = buf.getUInt16();
@@ -207,13 +174,7 @@ void ts::DSMCCDownloadDataMessage::DisplaySection(TablesDisplay& disp, const ts:
 
 void ts::DSMCCDownloadDataMessage::buildXML(DuckContext& duck, xml::Element* root) const
 {
-    root->setIntAttribute(u"version", version);
-    root->setBoolAttribute(u"current", is_current);
-    root->setIntAttribute(u"table_id_extension", table_id_ext, true);
-    root->setIntAttribute(u"protocol_discriminator", header.protocol_discriminator, true);
-    root->setIntAttribute(u"dsmcc_type", header.dsmcc_type, true);
-    root->setIntAttribute(u"message_id", header.message_id, true);
-    root->setIntAttribute(u"download_id", header.download_id, true);
+    AbstractDSMCCTable::buildXML(duck, root);
     root->setIntAttribute(u"module_id", module_id, true);
     root->setIntAttribute(u"module_version", module_version, true);
     root->addHexaTextChild(u"block_data", block_data, true);
@@ -225,13 +186,7 @@ void ts::DSMCCDownloadDataMessage::buildXML(DuckContext& duck, xml::Element* roo
 
 bool ts::DSMCCDownloadDataMessage::analyzeXML(DuckContext& duck, const xml::Element* element)
 {
-    return element->getIntAttribute(version, u"version", false, 0, 0, 31) &&
-           element->getBoolAttribute(is_current, u"current", false, true) &&
-           element->getIntAttribute(table_id_ext, u"table_id_extension", true) &&
-           element->getIntAttribute(header.protocol_discriminator, u"protocol_discriminator", false, 0x11) &&
-           element->getIntAttribute(header.dsmcc_type, u"dsmcc_type", true, 0x03) &&
-           element->getIntAttribute(header.message_id, u"message_id", true) &&
-           element->getIntAttribute(header.download_id, u"download_id", true) &&
+    return ts::AbstractDSMCCTable::analyzeXML(duck, element) &&
            element->getIntAttribute(module_id, u"module_id", true) &&
            element->getIntAttribute(module_version, u"module_version", true) &&
            element->getHexaTextChild(block_data, u"block_data");
