@@ -57,6 +57,10 @@ class DSMCCTest: public tsunit::Test
     TSUNIT_DECLARE_TEST(BIOP_MessageHeaderValid);
     TSUNIT_DECLARE_TEST(BIOP_ServiceGatewayMessageParse);
     TSUNIT_DECLARE_TEST(BIOP_ServiceGatewayMessageXMLRoundTrip);
+    TSUNIT_DECLARE_TEST(BIOP_StreamMessageParse);
+    TSUNIT_DECLARE_TEST(BIOP_StreamMessageXMLRoundTrip);
+    TSUNIT_DECLARE_TEST(BIOP_StreamEventMessageParse);
+    TSUNIT_DECLARE_TEST(BIOP_StreamEventMessageXMLRoundTrip);
     TSUNIT_DECLARE_TEST(BIOP_UnsupportedKindReturnsNull);
 };
 
@@ -1034,6 +1038,215 @@ TSUNIT_DEFINE_TEST(BIOP_ServiceGatewayMessageXMLRoundTrip)
 }
 
 
+// Parse a BIOP Stream message with one tap.
+TSUNIT_DEFINE_TEST(BIOP_StreamMessageParse)
+{
+    ts::DuckContext duck;
+
+    // BIOP::Stream with:
+    //   object_key = 0x05
+    //   object_kind = "str\0"
+    //   object_info = empty (0 bytes)
+    //   service_contexts = 0
+    //   body: info_length=4, audio=0, video=0, data=1, event=0
+    //         taps_count=1, tap(use=0x000D, id=0, assoc_tag=0x000C, no selector)
+    uint8_t data[] = {
+        // BIOP header
+        0x42, 0x49, 0x4F, 0x50, 0x01, 0x00, 0x00, 0x00,
+        // message_size = 34 (0x22)
+        0x00, 0x00, 0x00, 0x22,
+        // object_key_length=1, key=0x05
+        0x01, 0x05,
+        // object_kind_length=4, "str\0"
+        0x00, 0x00, 0x00, 0x04, 0x73, 0x74, 0x72, 0x00,
+        // object_info_length=0
+        0x00, 0x00,
+        // serviceContextList_count=0
+        0x00,
+        // messageBody_length = 17 (0x11)
+        0x00, 0x00, 0x00, 0x11,
+        // aDescription: info_length=4
+        0x00, 0x00, 0x00, 0x04,
+        // StreamInfo: audio=0, video=0, data=1, event=0
+        0x00, 0x00, 0x01, 0x00,
+        // taps_count=1
+        0x00, 0x01,
+        // Tap: id=0x0000, use=0x000D (STR_EVENT_USE), assoc_tag=0x000C, selector_length=0
+        0x00, 0x00, 0x00, 0x0D, 0x00, 0x0C, 0x00,
+    };
+
+    ts::PSIBuffer buf(duck, data, sizeof(data), true);
+    auto msg = ts::BIOPMessage::Parse(buf);
+
+    TSUNIT_ASSERT(msg != nullptr);
+    TSUNIT_ASSERT(msg->header.isValid());
+    TSUNIT_EQUAL("str", msg->kindTag());
+
+    auto* stream = dynamic_cast<ts::BIOPStreamMessage*>(msg.get());
+    TSUNIT_ASSERT(stream != nullptr);
+    TSUNIT_EQUAL(0u, stream->info.audio_count);
+    TSUNIT_EQUAL(0u, stream->info.video_count);
+    TSUNIT_EQUAL(1u, stream->info.data_count);
+    TSUNIT_EQUAL(0u, stream->info.event_count);
+    TSUNIT_EQUAL(1u, stream->taps.size());
+    TSUNIT_EQUAL(0x000Du, stream->taps[0].use);
+    TSUNIT_EQUAL(0x000Cu, stream->taps[0].association_tag);
+    TSUNIT_ASSERT(!buf.error());
+}
+
+
+// XML round-trip for BIOP Stream message.
+TSUNIT_DEFINE_TEST(BIOP_StreamMessageXMLRoundTrip)
+{
+    ts::DuckContext duck;
+
+    ts::BIOPStreamMessage orig;
+    orig.object_key = {0x05};
+    orig.object_kind = {0x73, 0x74, 0x72, 0x00};
+    orig.info = {0, 0, 1, 0};
+    ts::DSMCCTap tap;
+    tap.use = 0x000D;
+    tap.id = 0;
+    tap.association_tag = 0x000C;
+    orig.taps.push_back(tap);
+
+    ts::xml::Document doc;
+    ts::xml::Element* root = doc.initialize(u"test");
+    orig.toXML(duck, root);
+
+    const ts::xml::Element* xmsg = root->findFirstChild(u"BIOP_message", true);
+    TSUNIT_ASSERT(xmsg != nullptr);
+
+    auto restored = ts::BIOPMessage::FromXML(duck, xmsg);
+    TSUNIT_ASSERT(restored != nullptr);
+    TSUNIT_EQUAL("str", restored->kindTag());
+
+    auto* stream = dynamic_cast<ts::BIOPStreamMessage*>(restored.get());
+    TSUNIT_ASSERT(stream != nullptr);
+    TSUNIT_EQUAL(1u, stream->info.data_count);
+    TSUNIT_EQUAL(1u, stream->taps.size());
+    TSUNIT_EQUAL(0x000Du, stream->taps[0].use);
+    TSUNIT_EQUAL(0x000Cu, stream->taps[0].association_tag);
+}
+
+
+// Parse a BIOP StreamEvent message with event names.
+TSUNIT_DEFINE_TEST(BIOP_StreamEventMessageParse)
+{
+    ts::DuckContext duck;
+
+    // BIOP::StreamEvent with:
+    //   object_key = 0x07
+    //   object_kind = "ste\0"
+    //   object_info: info_length=4 + StreamInfo + eventIds_count=2 + ids=[0x0001, 0x0002]
+    //   body: info_length=4 + StreamInfo + taps_count=1 + tap + eventNames_count=2 + "click" + "end"
+    uint8_t data[] = {
+        // BIOP header
+        0x42, 0x49, 0x4F, 0x50, 0x01, 0x00, 0x00, 0x00,
+        // message_size = 59 (0x3B)
+        0x00, 0x00, 0x00, 0x3B,
+        // object_key_length=1, key=0x07
+        0x01, 0x07,
+        // object_kind_length=4, "ste\0"
+        0x00, 0x00, 0x00, 0x04, 0x73, 0x74, 0x65, 0x00,
+        // object_info_length=14
+        0x00, 0x0E,
+        // object_info: info_length=4
+        0x00, 0x00, 0x00, 0x04,
+        // StreamInfo: audio=0, video=0, data=0, event=2
+        0x00, 0x00, 0x00, 0x02,
+        // eventIds_count=2
+        0x00, 0x02,
+        // eventId[0]=0x0001, eventId[1]=0x0002
+        0x00, 0x01, 0x00, 0x02,
+        // serviceContextList_count=0
+        0x00,
+        // messageBody_length = 28 (0x1C)
+        0x00, 0x00, 0x00, 0x1C,
+        // aDescription: info_length=4
+        0x00, 0x00, 0x00, 0x04,
+        // StreamInfo: audio=0, video=0, data=0, event=2
+        0x00, 0x00, 0x00, 0x02,
+        // taps_count=1
+        0x00, 0x01,
+        // Tap: id=0, use=0x000D, assoc_tag=0x0010, selector_length=0
+        0x00, 0x00, 0x00, 0x0D, 0x00, 0x10, 0x00,
+        // eventNames_count=2
+        0x02,
+        // event name 1: length=5, "click"
+        0x05, 0x63, 0x6C, 0x69, 0x63, 0x6B,
+        // event name 2: length=3, "end"
+        0x03, 0x65, 0x6E, 0x64,
+    };
+
+    ts::PSIBuffer buf(duck, data, sizeof(data), true);
+    auto msg = ts::BIOPMessage::Parse(buf);
+
+    TSUNIT_ASSERT(msg != nullptr);
+    TSUNIT_ASSERT(msg->header.isValid());
+    TSUNIT_EQUAL("ste", msg->kindTag());
+
+    auto* ste = dynamic_cast<ts::BIOPStreamEventMessage*>(msg.get());
+    TSUNIT_ASSERT(ste != nullptr);
+    TSUNIT_EQUAL(0u, ste->info.audio_count);
+    TSUNIT_EQUAL(2u, ste->info.event_count);
+    TSUNIT_EQUAL(1u, ste->taps.size());
+    TSUNIT_EQUAL(0x0010u, ste->taps[0].association_tag);
+
+    // Event IDs decoded from object_info
+    TSUNIT_EQUAL(2u, ste->event_ids.size());
+    TSUNIT_EQUAL(0x0001u, ste->event_ids[0]);
+    TSUNIT_EQUAL(0x0002u, ste->event_ids[1]);
+
+    // Event names from body
+    TSUNIT_EQUAL(2u, ste->event_names.size());
+    TSUNIT_EQUAL(u"click", ste->event_names[0]);
+    TSUNIT_EQUAL(u"end", ste->event_names[1]);
+    TSUNIT_ASSERT(!buf.error());
+}
+
+
+// XML round-trip for BIOP StreamEvent message.
+TSUNIT_DEFINE_TEST(BIOP_StreamEventMessageXMLRoundTrip)
+{
+    ts::DuckContext duck;
+
+    ts::BIOPStreamEventMessage orig;
+    orig.object_key = {0x07};
+    orig.object_kind = {0x73, 0x74, 0x65, 0x00};
+    orig.info = {0, 0, 0, 2};
+    ts::DSMCCTap tap;
+    tap.use = 0x000D;
+    tap.association_tag = 0x0010;
+    orig.taps.push_back(tap);
+    orig.event_ids = {0x0001, 0x0002};
+    orig.event_names = {u"click", u"end"};
+
+    ts::xml::Document doc;
+    ts::xml::Element* root = doc.initialize(u"test");
+    orig.toXML(duck, root);
+
+    const ts::xml::Element* xmsg = root->findFirstChild(u"BIOP_message", true);
+    TSUNIT_ASSERT(xmsg != nullptr);
+
+    auto restored = ts::BIOPMessage::FromXML(duck, xmsg);
+    TSUNIT_ASSERT(restored != nullptr);
+    TSUNIT_EQUAL("ste", restored->kindTag());
+
+    auto* ste = dynamic_cast<ts::BIOPStreamEventMessage*>(restored.get());
+    TSUNIT_ASSERT(ste != nullptr);
+    TSUNIT_EQUAL(2u, ste->info.event_count);
+    TSUNIT_EQUAL(1u, ste->taps.size());
+    TSUNIT_EQUAL(0x0010u, ste->taps[0].association_tag);
+    TSUNIT_EQUAL(2u, ste->event_ids.size());
+    TSUNIT_EQUAL(0x0001u, ste->event_ids[0]);
+    TSUNIT_EQUAL(0x0002u, ste->event_ids[1]);
+    TSUNIT_EQUAL(2u, ste->event_names.size());
+    TSUNIT_EQUAL(u"click", ste->event_names[0]);
+    TSUNIT_EQUAL(u"end", ste->event_names[1]);
+}
+
+
 // Parse returns nullptr (not an error) for a kind we don't support yet.
 // The read pointer must advance past the full message.
 TSUNIT_DEFINE_TEST(BIOP_UnsupportedKindReturnsNull)
@@ -1044,7 +1257,7 @@ TSUNIT_DEFINE_TEST(BIOP_UnsupportedKindReturnsNull)
         0x42, 0x49, 0x4F, 0x50, 0x01, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x18,
         0x04, 0x00, 0x00, 0x00, 0x01,
-        0x00, 0x00, 0x00, 0x04, 0x73, 0x74, 0x72, 0x00,
+        0x00, 0x00, 0x00, 0x04, 0x78, 0x78, 0x78, 0x00,  // "xxx\0" — unsupported kind
         0x00, 0x00,
         0x00,
         0x00, 0x00, 0x00, 0x04,

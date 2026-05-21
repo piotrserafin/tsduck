@@ -198,6 +198,12 @@ std::unique_ptr<ts::BIOPMessage> ts::BIOPMessage::CreateForKind(const std::strin
     if (tag == BIOPObjectKind::SERVICE_GATEWAY || tag == BIOPObjectKind::DIRECTORY) {
         return std::make_unique<BIOPBindingListMessage>();
     }
+    if (tag == BIOPObjectKind::STREAM) {
+        return std::make_unique<BIOPStreamMessage>();
+    }
+    if (tag == BIOPObjectKind::STREAM_EVENT) {
+        return std::make_unique<BIOPStreamEventMessage>();
+    }
     return nullptr;
 }
 
@@ -558,6 +564,181 @@ bool ts::BIOPBindingListMessage::fromXMLBody(DuckContext& duck, const xml::Eleme
     bool ok = true;
     for (auto& xb : body->children(u"binding", &ok)) {
         ok = ok && bindings.emplace_back().fromXML(duck, &xb);
+    }
+    return ok;
+}
+
+
+//----------------------------------------------------------------------------
+// BIOPStreamMessage - deserializeBody
+//----------------------------------------------------------------------------
+
+bool ts::BIOPStreamMessage::deserializeBody(PSIBuffer& buf)
+{
+    // aDescription: info_length (uint32) + DSM::Stream::Info (4 bytes)
+    const uint32_t info_length = buf.getUInt32();
+    if (info_length >= 4) {
+        info.audio_count = buf.getUInt8();
+        info.video_count = buf.getUInt8();
+        info.data_count = buf.getUInt8();
+        info.event_count = buf.getUInt8();
+        // Skip any remaining bytes in aDescription
+        if (info_length > 4) {
+            buf.skipBytes(info_length - 4);
+        }
+    }
+    else {
+        buf.skipBytes(info_length);
+    }
+
+    // Taps
+    const uint16_t taps_count = buf.getUInt16();
+    taps.resize(taps_count);
+    for (auto& tap : taps) {
+        tap.deserialize(buf);
+    }
+    return !buf.error();
+}
+
+
+//----------------------------------------------------------------------------
+// BIOPStreamMessage - toXMLBody / fromXMLBody
+//----------------------------------------------------------------------------
+
+void ts::BIOPStreamMessage::toXMLBody(DuckContext& duck, xml::Element* msg_element) const
+{
+    xml::Element* body = msg_element->addElement(u"stream_body");
+    xml::Element* xi = body->addElement(u"stream_info");
+    xi->setIntAttribute(u"audio", info.audio_count);
+    xi->setIntAttribute(u"video", info.video_count);
+    xi->setIntAttribute(u"data", info.data_count);
+    xi->setIntAttribute(u"event", info.event_count);
+    for (const auto& tap : taps) {
+        tap.toXML(duck, body);
+    }
+}
+
+bool ts::BIOPStreamMessage::fromXMLBody(DuckContext& duck, const xml::Element* msg_element)
+{
+    const xml::Element* body = msg_element->findFirstChild(u"stream_body", true);
+    if (body == nullptr) {
+        return false;
+    }
+    const xml::Element* xi = body->findFirstChild(u"stream_info", true);
+    if (xi == nullptr) {
+        return false;
+    }
+    bool ok = xi->getIntAttribute(info.audio_count, u"audio", false, 0) &&
+              xi->getIntAttribute(info.video_count, u"video", false, 0) &&
+              xi->getIntAttribute(info.data_count, u"data", false, 0) &&
+              xi->getIntAttribute(info.event_count, u"event", false, 0);
+    for (auto& xt : body->children(u"Tap", &ok)) {
+        ok = ok && taps.emplace_back().fromXML(duck, &xt, nullptr);
+    }
+    return ok;
+}
+
+
+//----------------------------------------------------------------------------
+// BIOPStreamEventMessage - decodeEventIds
+//----------------------------------------------------------------------------
+
+void ts::BIOPStreamEventMessage::decodeEventIds()
+{
+    // object_info for StreamEvent:
+    //   DSM::Event::Info {
+    //     aDescription (info_length + StreamInfo) -- skip
+    //     eventIds_count  uint16
+    //     eventId[]       uint16[]
+    //   }
+    // We need to skip the aDescription part first.
+    event_ids.clear();
+    if (object_info.size() < 4) {
+        return;  // Too short for even the info_length field
+    }
+    const uint32_t info_length = GetUInt32(object_info.data());
+    const size_t event_offset = 4 + info_length;
+    if (object_info.size() < event_offset + 2) {
+        return;
+    }
+    const uint16_t count = GetUInt16(object_info.data() + event_offset);
+    const size_t ids_offset = event_offset + 2;
+    for (uint16_t i = 0; i < count && ids_offset + 2 * i + 1 < object_info.size(); ++i) {
+        event_ids.push_back(GetUInt16(object_info.data() + ids_offset + 2 * i));
+    }
+}
+
+
+//----------------------------------------------------------------------------
+// BIOPStreamEventMessage - deserializeBody
+//----------------------------------------------------------------------------
+
+bool ts::BIOPStreamEventMessage::deserializeBody(PSIBuffer& buf)
+{
+    // The Stream part (aDescription + taps)
+    if (!BIOPStreamMessage::deserializeBody(buf)) {
+        return false;
+    }
+
+    // Event names
+    const uint8_t names_count = buf.getUInt8();
+    for (uint8_t i = 0; i < names_count && !buf.error(); ++i) {
+        const uint8_t len = buf.getUInt8();
+        const ByteBlock raw = buf.getBytes(len);
+        event_names.push_back(UString::FromUTF8(reinterpret_cast<const char*>(raw.data()), raw.size()));
+    }
+
+    // Decode event IDs from object_info
+    decodeEventIds();
+
+    return !buf.error();
+}
+
+
+//----------------------------------------------------------------------------
+// BIOPStreamEventMessage - toXMLBody / fromXMLBody
+//----------------------------------------------------------------------------
+
+void ts::BIOPStreamEventMessage::toXMLBody(DuckContext& duck, xml::Element* msg_element) const
+{
+    // Serialize the stream part first
+    BIOPStreamMessage::toXMLBody(duck, msg_element);
+
+    // Add event IDs and names
+    xml::Element* body = msg_element->findFirstChild(u"stream_body", true);
+    if (body != nullptr) {
+        for (uint16_t id : event_ids) {
+            body->addElement(u"event_id")->setIntAttribute(u"value", id, true);
+        }
+        for (const auto& name : event_names) {
+            body->addElement(u"event_name")->setAttribute(u"value", name);
+        }
+    }
+}
+
+bool ts::BIOPStreamEventMessage::fromXMLBody(DuckContext& duck, const xml::Element* msg_element)
+{
+    if (!BIOPStreamMessage::fromXMLBody(duck, msg_element)) {
+        return false;
+    }
+    const xml::Element* body = msg_element->findFirstChild(u"stream_body", true);
+    if (body == nullptr) {
+        return false;
+    }
+    bool ok = true;
+    for (auto& xe : body->children(u"event_id", &ok)) {
+        uint16_t id = 0;
+        ok = ok && xe.getIntAttribute(id, u"value", true);
+        if (ok) {
+            event_ids.push_back(id);
+        }
+    }
+    for (auto& xe : body->children(u"event_name", &ok)) {
+        UString name;
+        ok = ok && xe.getAttribute(name, u"value", true);
+        if (ok) {
+            event_names.push_back(name);
+        }
     }
     return ok;
 }

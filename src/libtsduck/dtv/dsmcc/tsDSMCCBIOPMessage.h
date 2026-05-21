@@ -13,6 +13,7 @@
 
 #pragma once
 #include "tsDSMCC.h"
+#include "tsDSMCCTap.h"
 #include "tsPSIBuffer.h"
 #include "tsTablesDisplay.h"
 #include "tsByteBlock.h"
@@ -421,6 +422,79 @@ namespace ts {
         BIOPBindingListMessage() = default;
 
         virtual const std::vector<BIOPBinding>* bindingList() const override { return &bindings; }
+
+    protected:
+        virtual bool deserializeBody(PSIBuffer& buf) override;
+        virtual void toXMLBody(DuckContext& duck, xml::Element* msg_element) const override;
+        virtual bool fromXMLBody(DuckContext& duck, const xml::Element* msg_element) override;
+    };
+
+
+    //!
+    //! BIOP Stream Message.
+    //!
+    //! Represents a `BIOP::Stream` object in a DSM-CC Object Carousel.
+    //! A Stream object points (via taps) to an elementary stream PID that
+    //! carries NPT references or stream mode descriptors.
+    //!
+    //! @see ISO/IEC 13818-6 section 8.6.4
+    //! @see ETSI TR 101 202 section 4.8
+    //! @ingroup libtsduck mpeg
+    //!
+    class TSDUCKDLL BIOPStreamMessage : public BIOPMessage
+    {
+        TS_NOCOPY(BIOPStreamMessage);
+
+    public:
+        //!
+        //! DSM::Stream::Info structure (from the message body's aDescription).
+        //!
+        struct StreamInfo {
+            uint8_t audio_count = 0;  //!< Number of audio components.
+            uint8_t video_count = 0;  //!< Number of video components.
+            uint8_t data_count = 0;   //!< Number of data components.
+            uint8_t event_count = 0;  //!< Number of event components.
+        };
+
+        StreamInfo               info {};   //!< DSM::Stream::Info from the body.
+        std::vector<DSMCCTap>    taps {};   //!< Taps pointing to the referenced ES PID.
+
+        BIOPStreamMessage() = default;
+
+    protected:
+        virtual bool deserializeBody(PSIBuffer& buf) override;
+        virtual void toXMLBody(DuckContext& duck, xml::Element* msg_element) const override;
+        virtual bool fromXMLBody(DuckContext& duck, const xml::Element* msg_element) override;
+    };
+
+
+    //!
+    //! BIOP StreamEvent Message.
+    //!
+    //! Extends `BIOP::Stream` with named events. Used by HbbTV/MHP/MHEG for
+    //! broadcast-synchronised triggers ("do-it-now" events). The `object_info`
+    //! field (parsed by the base class as raw bytes) carries eventId values;
+    //! the body adds the corresponding event names.
+    //!
+    //! @see ISO/IEC 13818-6 section 8.6.5
+    //! @see ETSI TR 101 202 section 4.8.2
+    //! @ingroup libtsduck mpeg
+    //!
+    class TSDUCKDLL BIOPStreamEventMessage : public BIOPStreamMessage
+    {
+        TS_NOCOPY(BIOPStreamEventMessage);
+
+    public:
+        std::vector<uint16_t> event_ids {};    //!< Event IDs (decoded from object_info).
+        std::vector<UString>  event_names {};  //!< Event names from the message body.
+
+        BIOPStreamEventMessage() = default;
+
+        //!
+        //! Decode the event IDs from the raw object_info bytes.
+        //! Call after deserialization if you need structured access to event IDs.
+        //!
+        void decodeEventIds();
 
     protected:
         virtual bool deserializeBody(PSIBuffer& buf) override;
