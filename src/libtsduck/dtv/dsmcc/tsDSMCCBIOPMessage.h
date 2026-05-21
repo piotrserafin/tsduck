@@ -491,10 +491,10 @@ namespace ts {
         BIOPStreamEventMessage() = default;
 
         //!
-        //! Decode the event IDs from the raw object_info bytes.
-        //! Call after deserialization if you need structured access to event IDs.
+        //! Decode event names and stream info from the raw object_info bytes.
+        //! Called automatically during deserialization.
         //!
-        void decodeEventIds();
+        void decodeEventNames();
 
     protected:
         virtual bool deserializeBody(PSIBuffer& buf) override;

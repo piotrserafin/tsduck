@@ -223,11 +223,18 @@ void ts::DSMCCExtractor::onObjectReady(uint32_t download_id, uint16_t module_id,
     const std::string kind = msg.kindTag();
     const bool is_file = kind == BIOPObjectKind::FILE;
     const bool is_dir = kind == BIOPObjectKind::DIRECTORY;
+    const bool is_stream = kind == BIOPObjectKind::STREAM;
+    const bool is_stream_event = kind == BIOPObjectKind::STREAM_EVENT;
     const BIOPFileMessage* file = is_file ? static_cast<const BIOPFileMessage*>(&msg) : nullptr;
     const size_t content_size = file ? file->content.size() : 0;
 
     _objects_by_module[{download_id, module_id}].push_back(_objects.size());
     _objects.push_back({download_id, module_id, name, kind, content_size});
+
+    // Log stream/stream-event details at verbose level (useful in all modes).
+    if (is_stream || is_stream_event) {
+        logStreamObject(name, msg);
+    }
 
     if (_options.list_mode || name.empty()) {
         return;
@@ -259,6 +266,40 @@ void ts::DSMCCExtractor::extractFile(const UString& name, const BIOPFileMessage&
     const UString out_path = pathToUString(*full);
     if (file.content.saveToFile(out_path, &_duck.report())) {
         _duck.report().verbose(u"Extracted %s (%d bytes)", out_path, file.content.size());
+    }
+}
+
+
+void ts::DSMCCExtractor::logStreamObject(const UString& name, const BIOPMessage& msg)
+{
+    const auto* stream = dynamic_cast<const BIOPStreamMessage*>(&msg);
+    if (stream == nullptr) {
+        return;
+    }
+
+    UString tap_info;
+    for (const auto& tap : stream->taps) {
+        if (!tap_info.empty()) {
+            tap_info += u", ";
+        }
+        tap_info += UString::Format(u"use=0x%04X assoc_tag=0x%04X", tap.use, tap.association_tag);
+    }
+    _duck.report().verbose(u"Stream object \"%s\": %d tap(s) [%s]",
+                           name, stream->taps.size(), tap_info);
+
+    const auto* ste = dynamic_cast<const BIOPStreamEventMessage*>(&msg);
+    if (ste != nullptr && !ste->event_names.empty()) {
+        UString events;
+        for (size_t i = 0; i < ste->event_names.size(); ++i) {
+            if (!events.empty()) {
+                events += u", ";
+            }
+            const UString id_str = (i < ste->event_ids.size())
+                ? UString::Format(u"0x%04X", ste->event_ids[i])
+                : u"?";
+            events += UString::Format(u"\"%s\" (id %s)", ste->event_names[i], id_str);
+        }
+        _duck.report().verbose(u"  Events: %s", events);
     }
 }
 

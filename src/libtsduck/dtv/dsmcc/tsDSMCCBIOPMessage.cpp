@@ -575,24 +575,9 @@ bool ts::BIOPBindingListMessage::fromXMLBody(DuckContext& duck, const xml::Eleme
 
 bool ts::BIOPStreamMessage::deserializeBody(PSIBuffer& buf)
 {
-    // aDescription: info_length (uint32) + DSM::Stream::Info (4 bytes)
-    const uint32_t info_length = buf.getUInt32();
-    if (info_length >= 4) {
-        info.audio_count = buf.getUInt8();
-        info.video_count = buf.getUInt8();
-        info.data_count = buf.getUInt8();
-        info.event_count = buf.getUInt8();
-        // Skip any remaining bytes in aDescription
-        if (info_length > 4) {
-            buf.skipBytes(info_length - 4);
-        }
-    }
-    else {
-        buf.skipBytes(info_length);
-    }
-
-    // Taps
-    const uint16_t taps_count = buf.getUInt16();
+    // Stream body per ETSI TR 101 202 §4.8.1:
+    //   taps_count (uint8) + Tap[]
+    const uint8_t taps_count = buf.getUInt8();
     taps.resize(taps_count);
     for (auto& tap : taps) {
         tap.deserialize(buf);
@@ -643,28 +628,53 @@ bool ts::BIOPStreamMessage::fromXMLBody(DuckContext& duck, const xml::Element* m
 // BIOPStreamEventMessage - decodeEventIds
 //----------------------------------------------------------------------------
 
-void ts::BIOPStreamEventMessage::decodeEventIds()
+void ts::BIOPStreamEventMessage::decodeEventNames()
 {
-    // object_info for StreamEvent:
-    //   DSM::Event::Info {
-    //     aDescription (info_length + StreamInfo) -- skip
-    //     eventIds_count  uint16
-    //     eventId[]       uint16[]
-    //   }
-    // We need to skip the aDescription part first.
-    event_ids.clear();
-    if (object_info.size() < 4) {
-        return;  // Too short for even the info_length field
-    }
-    const uint32_t info_length = GetUInt32(object_info.data());
-    const size_t event_offset = 4 + info_length;
-    if (object_info.size() < event_offset + 2) {
-        return;
-    }
-    const uint16_t count = GetUInt16(object_info.data() + event_offset);
-    const size_t ids_offset = event_offset + 2;
-    for (uint16_t i = 0; i < count && ids_offset + 2 * i + 1 < object_info.size(); ++i) {
-        event_ids.push_back(GetUInt16(object_info.data() + ids_offset + 2 * i));
+    // object_info for StreamEvent contains event names, but the exact layout
+    // varies by profile (the aDescription block and duration fields may or may
+    // not be present). We scan for the eventNames by locating the pattern:
+    //   eventNames_count (uint8) followed by length-prefixed UTF-8 strings
+    //   that consume exactly the rest of object_info.
+    //
+    // Strategy: try each offset as a potential eventNames_count start;
+    // accept the first one where the names consume the rest exactly.
+    event_names.clear();
+    info = {};  // reset, will populate if we find a valid offset
+
+    for (size_t start = 0; start < object_info.size(); ++start) {
+        const uint8_t count = object_info[start];
+        if (count == 0) {
+            continue;
+        }
+        // Try to read 'count' length-prefixed strings from start+1
+        size_t pos = start + 1;
+        std::vector<UString> names;
+        bool valid = true;
+        for (uint8_t i = 0; i < count; ++i) {
+            if (pos >= object_info.size()) {
+                valid = false;
+                break;
+            }
+            const uint8_t len = object_info[pos++];
+            if (pos + len > object_info.size()) {
+                valid = false;
+                break;
+            }
+            names.push_back(UString::FromUTF8(
+                reinterpret_cast<const char*>(object_info.data() + pos), len));
+            pos += len;
+        }
+        if (valid && pos == object_info.size()) {
+            event_names = std::move(names);
+            info.event_count = count;
+            // Try to decode audio/video/data from the 3 bytes before the names
+            if (start >= 3) {
+                info.audio_count = object_info[start - 3];
+                info.video_count = object_info[start - 2];
+                info.data_count = object_info[start - 1];
+            }
+            return;
+        }
     }
 }
 
@@ -675,21 +685,21 @@ void ts::BIOPStreamEventMessage::decodeEventIds()
 
 bool ts::BIOPStreamEventMessage::deserializeBody(PSIBuffer& buf)
 {
-    // The Stream part (aDescription + taps)
+    // StreamEvent body per ETSI TR 101 202 §4.8.2:
+    //   taps_count (uint8) + Tap[]
+    //   eventIds_count (uint8) + eventId[] (uint16 each)
     if (!BIOPStreamMessage::deserializeBody(buf)) {
         return false;
     }
 
-    // Event names
-    const uint8_t names_count = buf.getUInt8();
-    for (uint8_t i = 0; i < names_count && !buf.error(); ++i) {
-        const uint8_t len = buf.getUInt8();
-        const ByteBlock raw = buf.getBytes(len);
-        event_names.push_back(UString::FromUTF8(reinterpret_cast<const char*>(raw.data()), raw.size()));
+    // Event IDs (in the body)
+    const uint8_t ids_count = buf.getUInt8();
+    for (uint8_t i = 0; i < ids_count && !buf.error(); ++i) {
+        event_ids.push_back(buf.getUInt16());
     }
 
-    // Decode event IDs from object_info
-    decodeEventIds();
+    // Event names are in object_info, decode them now.
+    decodeEventNames();
 
     return !buf.error();
 }

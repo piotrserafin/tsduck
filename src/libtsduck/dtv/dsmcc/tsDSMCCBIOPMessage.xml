@@ -50,6 +50,19 @@
         </binding>
       </bindings>
 
+      <!-- Body for object_kind="str" or object_kind="ste" -->
+      <stream_body>
+        <stream_info
+            audio="uint8, default=0"
+            video="uint8, default=0"
+            data="uint8, default=0"
+            event="uint8, default=0"/>
+        <_any in="_dsmccTap"/>
+        <!-- Only for object_kind="ste" -->
+        <event_id value="uint16, required"/>
+        <event_name value="string, required"/>
+      </stream_body>
+
     </BIOP_message>
 
   </_dsmccBIOPMessage>
