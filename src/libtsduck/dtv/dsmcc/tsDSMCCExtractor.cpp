@@ -29,6 +29,8 @@
 #include "tsNames.h"
 #include "tsOUI.h"
 #include "tsDSMCC.h"
+#include "tsjson.h"
+#include "tsjsonValue.h"
 #include <algorithm>
 #include <filesystem>
 
@@ -41,7 +43,7 @@ namespace {
     {
         return ts::UString::FromUTF8(p.string());
     }
-}
+}  // namespace
 
 
 ts::DSMCCExtractor::DSMCCExtractor(DuckContext& duck, const Options& options) :
@@ -231,7 +233,6 @@ void ts::DSMCCExtractor::onObjectReady(uint32_t download_id, uint16_t module_id,
     _objects_by_module[{download_id, module_id}].push_back(_objects.size());
     _objects.push_back({download_id, module_id, name, kind, content_size});
 
-    // Log stream/stream-event details at verbose level (useful in all modes).
     if (is_stream || is_stream_event) {
         logStreamObject(name, msg);
     }
@@ -244,6 +245,9 @@ void ts::DSMCCExtractor::onObjectReady(uint32_t download_id, uint16_t module_id,
     }
     else if (is_dir) {
         extractDirectory(name);
+    }
+    else if (is_stream || is_stream_event) {
+        extractStreamEvent(name, msg);
     }
 }
 
@@ -294,12 +298,67 @@ void ts::DSMCCExtractor::logStreamObject(const UString& name, const BIOPMessage&
             if (!events.empty()) {
                 events += u", ";
             }
-            const UString id_str = (i < ste->event_ids.size())
-                ? UString::Format(u"0x%04X", ste->event_ids[i])
-                : u"?";
+            const UString id_str = (i < ste->event_ids.size()) ? UString::Format(u"0x%04X", ste->event_ids[i]) : u"?";
             events += UString::Format(u"\"%s\" (id %s)", ste->event_names[i], id_str);
         }
         _duck.report().verbose(u"  Events: %s", events);
+    }
+}
+
+
+void ts::DSMCCExtractor::extractStreamEvent(const UString& name, const BIOPMessage& msg)
+{
+    const auto* stream = dynamic_cast<const BIOPStreamMessage*>(&msg);
+    if (stream == nullptr) {
+        return;
+    }
+
+    auto base_path = safeOutputPath(name);
+    if (!base_path) {
+        return;
+    }
+    const auto json_path = std::filesystem::path(base_path->string() + ".json");
+    if (!ensureDir(json_path.parent_path())) {
+        return;
+    }
+
+    json::ValuePtr root = json::Factory(json::Type::Object);
+    root->add(u"kind", UString::FromUTF8(msg.kindTag()));
+    root->add(u"name", name);
+
+    // Taps.
+    json::Value& taps_arr = root->query(u"taps", true, json::Type::Array);
+    for (const auto& tap : stream->taps) {
+        json::ValuePtr tap_obj = json::Factory(json::Type::Object);
+        tap_obj->add(u"use", UString::Format(u"0x%04X", tap.use));
+        tap_obj->add(u"id", UString::Format(u"0x%04X", tap.id));
+        tap_obj->add(u"association_tag", UString::Format(u"0x%04X", tap.association_tag));
+        taps_arr.set(tap_obj);
+    }
+
+    // Event names and IDs (StreamEvent only).
+    const auto* ste = dynamic_cast<const BIOPStreamEventMessage*>(&msg);
+    if (ste != nullptr) {
+        json::Value& events_arr = root->query(u"events", true, json::Type::Array);
+        for (size_t i = 0; i < ste->event_names.size(); ++i) {
+            json::ValuePtr ev = json::Factory(json::Type::Object);
+            if (i < ste->event_ids.size()) {
+                ev->add(u"id", int64_t(ste->event_ids[i]));
+            }
+            ev->add(u"name", ste->event_names[i]);
+            events_arr.set(ev);
+        }
+        // If there are IDs without names, add them too.
+        for (size_t i = ste->event_names.size(); i < ste->event_ids.size(); ++i) {
+            json::ValuePtr ev = json::Factory(json::Type::Object);
+            ev->add(u"id", int64_t(ste->event_ids[i]));
+            events_arr.set(ev);
+        }
+    }
+
+    const UString out_path = pathToUString(json_path);
+    if (root->save(json_path, 2, false, _duck.report())) {
+        _duck.report().verbose(u"Extracted stream event %s", out_path);
     }
 }
 
@@ -378,9 +437,7 @@ ts::UString ts::DSMCCExtractor::renderGroupBlock(const DSMCCCarousel::GroupConte
 
 ts::UString ts::DSMCCExtractor::renderModuleBlock(const DSMCCModuleAssembler::ModuleContext& ctx) const
 {
-    const UString size_extra = ctx.is_compressed
-        ? UString::Format(u", original size: %d bytes", ctx.original_size)
-        : UString();
+    const UString size_extra = ctx.is_compressed ? UString::Format(u", original size: %d bytes", ctx.original_size) : UString();
 
     UString out;
     out += UString::Format(u"%s- Module 0x%04X\n", u"  ", ctx.module_id);
@@ -435,9 +492,7 @@ ts::UString ts::DSMCCExtractor::renderCompatibilityDescriptor(const DSMCCCompati
     for (const auto& desc : compat_desc.descs) {
         const UString desc_type = NameFromSection(u"dtv", u"DSMCC.descriptorType", desc.descriptorType, NamesFlags::HEX_VALUE_NAME);
         const UString specifier_type = NameFromSection(u"dtv", u"DSMCC.specifierType", desc.specifierType, NamesFlags::HEX_VALUE_NAME);
-        const UString specifier_data = (desc.specifierType == DSMCC_SPTYPE_OUI)
-            ? OUIName(desc.specifierData, NamesFlags::HEX_VALUE_NAME)
-            : UString::Format(u"0x%06X", desc.specifierData);
+        const UString specifier_data = (desc.specifierType == DSMCC_SPTYPE_OUI) ? OUIName(desc.specifierData, NamesFlags::HEX_VALUE_NAME) : UString::Format(u"0x%06X", desc.specifierData);
         out += UString::Format(u"    - Descriptor %d: type %s\n", idx, desc_type);
         out += UString::Format(u"      Specifier type: %s\n", specifier_type);
         out += UString::Format(u"      Specifier data: %s\n", specifier_data);
@@ -465,13 +520,15 @@ ts::UString ts::DSMCCExtractor::renderOneDescriptor(size_t index, const Descript
         case DID_DSMCC_TYPE: {
             DSMCCTypeDescriptor desc(_duck, raw);
             header = u"Type";
-            if (desc.isValid()) body += UString::Format(u"      Module type: %s\n", desc.type);
+            if (desc.isValid())
+                body += UString::Format(u"      Module type: %s\n", desc.type);
             break;
         }
         case DID_DSMCC_NAME: {
             DSMCCNameDescriptor desc(_duck, raw);
             header = u"Name";
-            if (desc.isValid()) body += UString::Format(u"      Name: \"%s\"\n", desc.name);
+            if (desc.isValid())
+                body += UString::Format(u"      Name: \"%s\"\n", desc.name);
             break;
         }
         case DID_DSMCC_INFO: {
@@ -486,13 +543,15 @@ ts::UString ts::DSMCCExtractor::renderOneDescriptor(size_t index, const Descript
         case DID_DSMCC_LABEL: {
             DSMCCLabelDescriptor desc(_duck, raw);
             header = u"Label";
-            if (desc.isValid()) body += UString::Format(u"      Label: \"%s\"\n", desc.label);
+            if (desc.isValid())
+                body += UString::Format(u"      Label: \"%s\"\n", desc.label);
             break;
         }
         case DID_DSMCC_CONTENT_TYPE: {
             DSMCCContentTypeDescriptor desc(_duck, raw);
             header = u"Content Type";
-            if (desc.isValid()) body += UString::Format(u"      Content type: \"%s\"\n", desc.content_type);
+            if (desc.isValid())
+                body += UString::Format(u"      Content type: \"%s\"\n", desc.content_type);
             break;
         }
         case DID_DSMCC_CACHING_PRIORITY: {
@@ -507,19 +566,22 @@ ts::UString ts::DSMCCExtractor::renderOneDescriptor(size_t index, const Descript
         case DID_DSMCC_CRC32: {
             DSMCCCRC32Descriptor desc(_duck, raw);
             header = u"CRC32";
-            if (desc.isValid()) body += UString::Format(u"      CRC32: 0x%08X\n", desc.crc32);
+            if (desc.isValid())
+                body += UString::Format(u"      CRC32: 0x%08X\n", desc.crc32);
             break;
         }
         case DID_DSMCC_EST_DOWNLOAD_TIME: {
             DSMCCEstDownloadTimeDescriptor desc(_duck, raw);
             header = u"Estimated Download Time";
-            if (desc.isValid()) body += UString::Format(u"      Estimated time: %d s\n", desc.est_download_time);
+            if (desc.isValid())
+                body += UString::Format(u"      Estimated time: %d s\n", desc.est_download_time);
             break;
         }
         case DID_DSMCC_LOCATION: {
             DSMCCLocationDescriptor desc(_duck, raw);
             header = u"Location";
-            if (desc.isValid()) body += UString::Format(u"      Location tag: 0x%02X\n", desc.location_tag);
+            if (desc.isValid())
+                body += UString::Format(u"      Location tag: 0x%02X\n", desc.location_tag);
             break;
         }
         case DID_DSMCC_MODULE_LINK: {
@@ -534,13 +596,15 @@ ts::UString ts::DSMCCExtractor::renderOneDescriptor(size_t index, const Descript
         case DID_DSMCC_SSU_MODULE_TYPE: {
             DSMCCSSUModuleTypeDescriptor desc(_duck, raw);
             header = u"SSU Module Type";
-            if (desc.isValid()) body += UString::Format(u"      SSU module type: 0x%02X\n", desc.ssu_module_type);
+            if (desc.isValid())
+                body += UString::Format(u"      SSU module type: 0x%02X\n", desc.ssu_module_type);
             break;
         }
         case DID_DSMCC_SUBGROUP_ASSOCIATION: {
             DSMCCSubgroupAssociationDescriptor desc(_duck, raw);
             header = u"Subgroup Association";
-            if (desc.isValid()) body += UString::Format(u"      Subgroup tag: 0x%010X\n", desc.subgroup_tag);
+            if (desc.isValid())
+                body += UString::Format(u"      Subgroup tag: 0x%010X\n", desc.subgroup_tag);
             break;
         }
         case DID_DSMCC_GROUP_LINK: {
@@ -609,6 +673,9 @@ ts::UString ts::DSMCCExtractor::renderFileTreeFinal() const
             ++file_count;
             total_bytes += obj.size;
         }
+        else if (obj.kind == BIOPObjectKind::STREAM || obj.kind == BIOPObjectKind::STREAM_EVENT) {
+            entries.push_back(&obj);
+        }
         else if (obj.kind == BIOPObjectKind::DIRECTORY && !implicit_dirs.contains(obj.path)) {
             entries.push_back(&obj);
         }
@@ -624,7 +691,7 @@ ts::UString ts::DSMCCExtractor::renderFileTreeFinal() const
     // Per-directory leaf-name padding so size columns line up under the same parent.
     std::map<UString, size_t> max_leaf;
     for (const auto* e : entries) {
-        if (e->kind != BIOPObjectKind::FILE) {
+        if (e->kind == BIOPObjectKind::DIRECTORY) {
             continue;
         }
         UStringVector segs;
@@ -675,7 +742,12 @@ ts::UString ts::DSMCCExtractor::renderFileTreeFinal() const
             if (leaf.length() < pad) {
                 leaf += UString(pad - leaf.length(), u' ');
             }
-            out += indent + leaf + UString::Format(u" (%d bytes)\n", e->size);
+            if (e->kind == BIOPObjectKind::FILE) {
+                out += indent + leaf + UString::Format(u" (%d bytes)\n", e->size);
+            }
+            else {
+                out += indent + leaf + UString::Format(u" [%s]\n", UString::FromUTF8(e->kind));
+            }
             prev_dirs = dirs;
         }
     }

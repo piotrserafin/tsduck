@@ -98,6 +98,7 @@ namespace ts {
         void onObjectReady(uint32_t download_id, uint16_t module_id, const UString& name, const BIOPMessage& msg);
         void extractFile(const UString& name, const BIOPFileMessage& file);
         void extractDirectory(const UString& name);
+        void extractStreamEvent(const UString& name, const BIOPMessage& msg);
         void logStreamObject(const UString& name, const BIOPMessage& msg);
 
         // Methods for rendering carousel state.

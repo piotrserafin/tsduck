@@ -660,8 +660,9 @@ void ts::BIOPStreamEventMessage::decodeEventNames()
                 valid = false;
                 break;
             }
+            const ByteBlock name_bytes(object_info.data() + pos, len);
             names.push_back(UString::FromUTF8(
-                reinterpret_cast<const char*>(object_info.data() + pos), len));
+                reinterpret_cast<const char*>(name_bytes.data()), TrimmedSize(name_bytes)));
             pos += len;
         }
         if (valid && pos == object_info.size()) {
